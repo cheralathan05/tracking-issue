@@ -1,7 +1,6 @@
 import crypto from "node:crypto";
 
 import { prisma } from "../config/prisma.js";
-import { Prisma } from "@prisma/client";
 import { env } from "../config/env.js";
 import { sendOfficerInvitationEmail } from "./email.service.js";
 import { officerSummarySelect } from "../constants/user.js";
@@ -75,38 +74,22 @@ export async function createOfficerInvitation(
   }
 
   const code = await ensureUniqueInvitationCode();
-  let invitation;
-  try {
-    invitation = await prisma.officerInvitation.create({
-      data: {
-        code,
-        fullName: input.fullName,
-        email: input.email,
-        mobile: input.mobile,
-        username: input.username || null,
-        department: input.department,
-        area: input.area,
-        invitedById: creatorUserId,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        status: "Pending",
-      },
-    });
-  } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-      const target = (err.meta as any)?.target as string[] | undefined;
-      if (target && target.includes("email")) {
-        throw new AppError("Officer invitation already exists for this email", 409);
-      }
-      if (target && target.includes("username")) {
-        throw new AppError("Preferred username already taken", 409);
-      }
-    }
-
-    throw err;
-  }
+  const invitation = await prisma.officerInvitation.create({
+    data: {
+      code,
+      fullName: input.fullName,
+      email: input.email,
+      mobile: input.mobile,
+      username: input.username || null,
+      department: input.department,
+      area: input.area,
+      invitedById: creatorUserId,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      status: "Pending",
+    },
+  });
 
   const origin = env.FRONTEND_ORIGIN.split(",").map((value) => value.trim()).find(Boolean) ?? "http://localhost:3000";
-  // Use the frontend activation route (keep compatibility with existing frontend)
   const invitationUrl = `${origin.replace(/\/$/, "")}/officer/invite?code=${encodeURIComponent(invitation.code)}`;
 
   // attempt to send email (best-effort)
@@ -207,41 +190,26 @@ export async function acceptOfficerInvitation(
     throw new AppError("An account already exists for this email", 409);
   }
 
-  let user;
-  try {
-    user = await prisma.user.create({
-      data: {
-        fullName: invitation.fullName,
-        username,
-        email: invitation.email,
-        mobile: invitation.mobile,
-        aadhaar: crypto.randomUUID(),
-        state: invitation.area,
-        district: invitation.area,
-        address: `${invitation.department}, ${invitation.area}`,
-        department: invitation.department,
-        jurisdictionArea: invitation.area,
-        officerCode,
-        password,
-        role: invitation.role,
-        isVerified: true,
-        emailVerified: true,
-      },
-      select: officerSummarySelect,
-    });
-  } catch (err) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-      const target = (err.meta as any)?.target as string[] | undefined;
-      if (target && target.includes("email")) {
-        throw new AppError("An account already exists for this email", 409);
-      }
-      if (target && target.includes("username")) {
-        throw new AppError("Username already exists", 409);
-      }
-    }
-
-    throw err;
-  }
+  const user = await prisma.user.create({
+    data: {
+      fullName: invitation.fullName,
+      username,
+      email: invitation.email,
+      mobile: invitation.mobile,
+      aadhaar: crypto.randomUUID(),
+      state: invitation.area,
+      district: invitation.area,
+      address: `${invitation.department}, ${invitation.area}`,
+      department: invitation.department,
+      jurisdictionArea: invitation.area,
+      officerCode,
+      password,
+      role: invitation.role,
+      isVerified: true,
+      emailVerified: true,
+    },
+    select: officerSummarySelect,
+  });
 
   await prisma.officerInvitation.update({
     where: { code },

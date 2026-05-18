@@ -205,20 +205,25 @@ async function findUserByIdentifier(identifier: string) {
   }
 
   const mobile = normalizeMobile(identifier);
-  if (mobile.length !== 10) {
-    const username = identifier.trim();
-
-    if (username.length < 3) {
-      throw new AppError("Enter a valid email, username, or mobile number", 400);
-    }
-
+  if (mobile.length === 10) {
     return prisma.user.findUnique({
-      where: { username } as never,
+      where: { mobile },
     });
   }
 
-  return prisma.user.findUnique({
-    where: { mobile },
+  // Try username or email (findFirst because OR across unique fields)
+  const username = identifier.trim();
+  if (username.length < 3) {
+    throw new AppError("Enter a valid email, username, or mobile number", 400);
+  }
+
+  return prisma.user.findFirst({
+    where: {
+      OR: [
+        { username: username },
+        { email: normalizeEmail(identifier) },
+      ],
+    },
   });
 }
 

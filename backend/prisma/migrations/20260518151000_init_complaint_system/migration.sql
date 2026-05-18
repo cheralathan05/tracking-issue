@@ -10,161 +10,161 @@ CREATE TYPE "EscalationLevel" AS ENUM ('level_1', 'level_2', 'level_3');
 -- CreateEnum
 CREATE TYPE "InvitationStatus" AS ENUM ('pending', 'accepted', 'expired');
 
--- AlterTable
-ALTER TABLE "refresh_tokens" ALTER COLUMN "updatedAt" DROP DEFAULT;
+-- AlterTable (guarded: only run if table exists)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class WHERE relkind = 'r' AND relname = 'refresh_tokens') THEN
+    EXECUTE 'ALTER TABLE "refresh_tokens" ALTER COLUMN "updatedAt" DROP DEFAULT';
+  END IF;
+END $$;
 
 -- CreateTable
 CREATE TABLE "departments" (
-	"id" TEXT NOT NULL,
-	"name" TEXT NOT NULL,
-	"description" TEXT,
-	"email" TEXT,
-	"contactNumber" TEXT,
-	"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	"updatedAt" TIMESTAMP(3) NOT NULL,
-
-	CONSTRAINT "departments_pkey" PRIMARY KEY ("id")
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "email" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "departments_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
 CREATE TABLE "areas" (
-	"id" TEXT NOT NULL,
-	"name" TEXT NOT NULL,
-	"code" TEXT NOT NULL,
-	"state" TEXT NOT NULL,
-	"district" TEXT NOT NULL,
-	"landmark" TEXT,
-	"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	"updatedAt" TIMESTAMP(3) NOT NULL,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "district" TEXT NOT NULL,
+    "landmark" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
-	CONSTRAINT "areas_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "areas_pkey" PRIMARY KEY ("id")
 );
-
 -- CreateTable
 CREATE TABLE "officers" (
-	"id" TEXT NOT NULL,
-	"userId" TEXT,
-	"employeeId" TEXT NOT NULL,
-	"departmentId" TEXT NOT NULL,
-	"areaId" TEXT NOT NULL,
-	"currentWorkload" INTEGER NOT NULL DEFAULT 0,
-	"maxWorkload" INTEGER NOT NULL DEFAULT 20,
-	"resolutionRate" DOUBLE PRECISION NOT NULL DEFAULT 0,
-	"completedCount" INTEGER NOT NULL DEFAULT 0,
-	"isActive" BOOLEAN NOT NULL DEFAULT true,
-	"verifiedEmail" TEXT,
-	"verifiedPhone" TEXT,
-	"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	"updatedAt" TIMESTAMP(3) NOT NULL,
+    "id" TEXT NOT NULL,
+    "userId" TEXT,
+    "employeeId" TEXT NOT NULL,
+    "departmentId" TEXT NOT NULL,
+    "areaId" TEXT NOT NULL,
+    "currentWorkload" INTEGER NOT NULL DEFAULT 0,
+    "maxWorkload" INTEGER NOT NULL DEFAULT 20,
+    "resolutionRate" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "completedCount" INTEGER NOT NULL DEFAULT 0,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "verifiedPhone" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
-	CONSTRAINT "officers_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "officers_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "complaints" (
-	"id" TEXT NOT NULL,
-	"complaintId" TEXT NOT NULL,
-	"citizenId" TEXT NOT NULL,
-	"citizenName" TEXT NOT NULL,
-	"citizenEmail" TEXT NOT NULL,
-	"citizenPhone" TEXT NOT NULL,
-	"title" TEXT NOT NULL,
-	"description" TEXT NOT NULL,
-	"category" TEXT NOT NULL,
-	"departmentId" TEXT,
-	"areaId" TEXT,
-	"latitude" DOUBLE PRECISION,
-	"longitude" DOUBLE PRECISION,
-	"address" TEXT,
-	"landmark" TEXT,
-	"priority" "ComplaintPriority" NOT NULL DEFAULT 'medium',
-	"status" "ComplaintStatus" NOT NULL DEFAULT 'submitted',
-	"evidence" TEXT[],
-	"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	"updatedAt" TIMESTAMP(3) NOT NULL,
-	"submittedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	"assignedAt" TIMESTAMP(3),
-	"resolvedAt" TIMESTAMP(3),
-	"slaDeadline" TIMESTAMP(3),
+    "id" TEXT NOT NULL,
+    "complaintId" TEXT NOT NULL,
+    "citizenId" TEXT NOT NULL,
+    "citizenName" TEXT NOT NULL,
+    "citizenPhone" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    -- Placeholder migration (moved back to 20260518141859_init_complaint_system)
+    -- No operations.
+    SELECT 1;
+    "description" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "departmentId" TEXT,
+    "areaId" TEXT,
+    "latitude" DOUBLE PRECISION,
+    "longitude" DOUBLE PRECISION,
+    "address" TEXT,
+    "landmark" TEXT,
+    "priority" "ComplaintPriority" NOT NULL DEFAULT 'medium',
+    "status" "ComplaintStatus" NOT NULL DEFAULT 'submitted',
+    "evidence" TEXT[],
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "submittedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "assignedAt" TIMESTAMP(3),
+    "resolvedAt" TIMESTAMP(3),
+    "slaDeadline" TIMESTAMP(3),
 
-	CONSTRAINT "complaints_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "complaints_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "assignments" (
-	"id" TEXT NOT NULL,
-	"complaintId" TEXT NOT NULL,
-	"officerId" TEXT NOT NULL,
-	"assignedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	"reassignedAt" TIMESTAMP(3),
-	"reasonNote" TEXT,
-	"confidence" DOUBLE PRECISION NOT NULL DEFAULT 100,
+    "id" TEXT NOT NULL,
+    "complaintId" TEXT NOT NULL,
+    "officerId" TEXT NOT NULL,
+    "assignedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "reassignedAt" TIMESTAMP(3),
+    "reasonNote" TEXT,
+    "confidence" DOUBLE PRECISION NOT NULL DEFAULT 100,
 
-	CONSTRAINT "assignments_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "assignments_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "resolutions" (
-	"id" TEXT NOT NULL,
-	"complaintId" TEXT NOT NULL,
-	"officerId" TEXT NOT NULL,
-	"status" TEXT NOT NULL,
-	"summary" TEXT NOT NULL,
-	"actionTaken" TEXT,
-	"evidence" TEXT[],
-	"submittedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	"verifiedAt" TIMESTAMP(3),
-	"verifiedBy" TEXT,
-	"rejectionReason" TEXT,
+    "id" TEXT NOT NULL,
+    "complaintId" TEXT NOT NULL,
+    "officerId" TEXT NOT NULL,
+    "status" TEXT NOT NULL,
+    "summary" TEXT NOT NULL,
+    "actionTaken" TEXT,
+    "evidence" TEXT[],
+    "submittedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "verifiedAt" TIMESTAMP(3),
+    "verifiedBy" TEXT,
+    "rejectionReason" TEXT,
 
-	CONSTRAINT "resolutions_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "resolutions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "escalations" (
-	"id" TEXT NOT NULL,
-	"complaintId" TEXT NOT NULL,
-	"officerId" TEXT,
-	"level" "EscalationLevel" NOT NULL DEFAULT 'level_1',
-	"reason" TEXT NOT NULL,
-	"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	"escalatedTo" TEXT,
+    "id" TEXT NOT NULL,
+    "complaintId" TEXT NOT NULL,
+    "officerId" TEXT,
+    "level" "EscalationLevel" NOT NULL DEFAULT 'level_1',
+    "reason" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "escalatedTo" TEXT,
 
-	CONSTRAINT "escalations_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "escalations_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "officer_invitations" (
-	"id" TEXT NOT NULL,
-	"email" TEXT NOT NULL,
-	"invitationToken" TEXT NOT NULL,
-	"officerName" TEXT NOT NULL,
-	"department" TEXT NOT NULL,
-	"area" TEXT NOT NULL,
-	"departmentId" TEXT,
-	"areaId" TEXT,
-	"status" "InvitationStatus" NOT NULL DEFAULT 'pending',
-	"expiresAt" TIMESTAMP(3) NOT NULL,
-	"acceptedAt" TIMESTAMP(3),
-	"acceptedBy" TEXT,
-	"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	"updatedAt" TIMESTAMP(3) NOT NULL,
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "invitationToken" TEXT NOT NULL,
+    "officerName" TEXT NOT NULL,
+    "department" TEXT NOT NULL,
+    "area" TEXT NOT NULL,
+    "departmentId" TEXT,
+    "areaId" TEXT,
+    "status" "InvitationStatus" NOT NULL DEFAULT 'pending',
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "acceptedAt" TIMESTAMP(3),
+    "acceptedBy" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
-	CONSTRAINT "officer_invitations_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "officer_invitations_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "activity_logs" (
-	"id" TEXT NOT NULL,
-	"complaintId" TEXT NOT NULL,
-	"action" TEXT NOT NULL,
-	"performedBy" TEXT NOT NULL,
-	"performedByRole" TEXT NOT NULL,
-	"description" TEXT,
-	"metadata" JSONB,
-	"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "id" TEXT NOT NULL,
+    "complaintId" TEXT NOT NULL,
+    "action" TEXT NOT NULL,
+    "performedBy" TEXT NOT NULL,
+    "performedByRole" TEXT NOT NULL,
+    "description" TEXT,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-	CONSTRAINT "activity_logs_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "activity_logs_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -298,4 +298,3 @@ ALTER TABLE "escalations" ADD CONSTRAINT "escalations_officerId_fkey" FOREIGN KE
 
 -- AddForeignKey
 ALTER TABLE "activity_logs" ADD CONSTRAINT "activity_logs_complaintId_fkey" FOREIGN KEY ("complaintId") REFERENCES "complaints"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
