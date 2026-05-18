@@ -1,13 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Shield, Lock, Mail } from "lucide-react";
 import { useState } from "react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loginCitizen } from "@/lib/auth-api";
 
+const loginSearchSchema = z.object({
+  returnTo: z.string().optional(),
+});
+
 export const Route = createFileRoute("/login")({
+  validateSearch: loginSearchSchema,
   head: () => ({
     meta: [
       { title: "Sign in — Civic Bridge Flow" },
@@ -19,6 +25,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [identifier, setIdentifier] = useState("");
@@ -34,11 +41,13 @@ function LoginPage() {
       const response = await loginCitizen(identifier, password, rememberMe);
       const role = response.data?.user.role ?? "citizen";
       const destination =
-        role === "citizen"
-          ? "/dashboard"
-          : role === "officer"
-            ? "/officer/dashboard"
-            : "/admin/dashboard";
+        search.returnTo?.startsWith("/")
+          ? search.returnTo
+          : role === "citizen"
+            ? "/dashboard"
+            : role === "officer"
+              ? "/officer/dashboard"
+              : "/admin/dashboard";
       await navigate({ to: destination as never });
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to sign in");

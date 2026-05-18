@@ -32,6 +32,66 @@ export function clearStoredTokens(): void {
   localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
 }
 
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const payloadPart = token.split(".")[1];
+
+  if (!payloadPart) {
+    return null;
+  }
+
+  try {
+    const normalizedPayload = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const padding = "=".repeat((4 - (normalizedPayload.length % 4)) % 4);
+    const decoded = window.atob(`${normalizedPayload}${padding}`);
+    return JSON.parse(decoded) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function isStoredAccessTokenExpired(token: string): boolean {
+  const payload = decodeJwtPayload(token);
+  const expiresAt = typeof payload?.exp === "number" ? payload.exp * 1000 : null;
+
+  if (!expiresAt) {
+    return true;
+  }
+
+  return expiresAt <= Date.now() + 30_000;
+}
+
+export async function ensureAuthSession(): Promise<string | null> {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const storedToken = getStoredToken();
+
+  if (storedToken && !isStoredAccessTokenExpired(storedToken)) {
+    return storedToken;
+  }
+
+  try {
+    const response = await request<{ token: string; user: { role: string; email: string; fullName: string } }>(
+      "/auth/refresh-token",
+      { method: "POST" },
+    );
+
+    if (response.data?.token) {
+      setStoredTokens(response.data.token);
+      return response.data.token;
+    }
+  } catch {
+    clearStoredTokens();
+  }
+
+  return null;
+}
+
 export type AuthUser = {
   id: string;
   fullName: string;

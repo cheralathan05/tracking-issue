@@ -45,11 +45,13 @@ function VerifyOtpPage() {
       if (token && user) {
         const role = user.role ?? "citizen";
         const destination =
-          role === "citizen"
-            ? "/dashboard"
-            : role === "officer"
-            ? "/officer/dashboard"
-            : "/admin/dashboard";
+          purpose === "admin_login" && search.returnTo?.startsWith("/")
+            ? search.returnTo
+            : role === "citizen"
+              ? "/dashboard"
+              : role === "officer"
+                ? "/officer/dashboard"
+                : "/admin/dashboard";
 
         await navigate({ to: destination as never });
         return;

@@ -1,18 +1,25 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Briefcase, Lock, User } from "lucide-react";
 import { useState } from "react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { loginAdmin } from "@/lib/auth-api";
 
+const loginSearchSchema = z.object({
+  returnTo: z.string().optional(),
+});
+
 export const Route = createFileRoute("/officer_/login")({
+  validateSearch: loginSearchSchema,
   head: () => ({ meta: [{ title: "Officer sign in — Civic Bridge Flow" }] }),
   component: OfficerLoginPage,
 });
 
 function OfficerLoginPage() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,8 +33,9 @@ function OfficerLoginPage() {
     try {
       const result = await loginAdmin(email, password, true);
       const resolvedEmail = result.data?.email ?? email;
+      const returnTo = search.returnTo?.startsWith("/") ? search.returnTo : "/officer/dashboard";
       await navigate({
-        to: `/verify-otp?email=${encodeURIComponent(resolvedEmail)}&purpose=admin_login&returnTo=/officer/dashboard` as never,
+        to: `/verify-otp?email=${encodeURIComponent(resolvedEmail)}&purpose=admin_login&returnTo=${encodeURIComponent(returnTo)}` as never,
       });
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to sign in");

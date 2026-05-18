@@ -1,13 +1,15 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { getStoredToken } from "@/lib/auth-api";
+import { ensureAuthSession } from "@/lib/auth-api";
 
 export const Route = createFileRoute("/admin")({
-  beforeLoad: async () => {
-    const token = getStoredToken();
+  beforeLoad: async ({ location }) => {
+    const token = await ensureAuthSession();
+
     if (!token) {
       throw redirect({
         to: "/admin/login",
+        search: { returnTo: location.pathname },
         replace: true,
       });
     }
