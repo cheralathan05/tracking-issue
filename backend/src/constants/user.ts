@@ -1,0 +1,43 @@
+import type { Prisma } from "@prisma/client";
+
+export const publicUserSelect = {
+  id: true,
+  fullName: true,
+  username: true,
+  email: true,
+  mobile: true,
+  aadhaar: true,
+  state: true,
+  district: true,
+  address: true,
+  department: true,
+  jurisdictionArea: true,
+  officerCode: true,
+  role: true,
+  isVerified: true,
+  emailVerified: true,
+  failedLoginAttempts: true,
+  lockedUntil: true,
+  lastLoginAt: true,
+  createdAt: true,
+  updatedAt: true,
+} as Prisma.UserSelect;
+
+export const officerSummarySelect = {
+  id: true,
+  fullName: true,
+  username: true,
+  email: true,
+  mobile: true,
+  state: true,
+  district: true,
+  address: true,
+  department: true,
+  jurisdictionArea: true,
+  officerCode: true,
+  role: true,
+  isVerified: true,
+  emailVerified: true,
+  createdAt: true,
+  updatedAt: true,
+} as Prisma.UserSelect;

@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  super_admin
+  state_admin
+  district_officer
+  department_officer
+  citizen
+  admin
+  officer
+}
+
+enum OtpPurpose {
+  registration
+  password_reset
+  admin_login
+}
+
+model User {
+  id          String   @id @default(cuid())
+  fullName    String
+  username    String?  @unique
+  email       String   @unique
+  mobile      String   @unique
+  aadhaar     String   @unique
+  state       String
+  district    String
+  address     String
+  department  String?
+  jurisdictionArea String?
+  officerCode String?  @unique
+  password    String
+  role        Role     @default(citizen)
+  isVerified  Boolean  @default(false)
+  emailVerified Boolean @default(false)
+  failedLoginAttempts Int @default(0)
+  lockedUntil DateTime?
+  lastLoginAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+  reporterComplaints Complaint[] @relation("ComplaintReporter")
+  assignedComplaints Complaint[] @relation("ComplaintAssignedOfficer")
+  invitationsCreated OfficerInvitation[] @relation("InvitationCreator")
+  invitationsAccepted OfficerInvitation[] @relation("InvitationAcceptedBy")
+
+  @@map("users")
+}
+
+model Complaint {
+  id                  String   @id @default(cuid())
+  grievanceId         String   @unique
+  reporterUserId      String?
+  reporterName        String
+  reporterEmail       String?
+  reporterMobile      String?
+  title               String
+  category            String
+  department          String
+  description         String
+  state               String
+  district            String
+  city                String
+  address             String
+  landmark            String?
+  pincode             String
+  priority            String
+  status              String   @default("Submitted")
+  publicVisibility    Boolean  @default(true)
+  suggestedOfficerId  String?
+  suggestedOfficerName String?
+  assignedOfficerId   String?
+  assignedOfficerName String?
+  assignedDepartment  String?
+  assignedArea        String?
+  evidence            Json?
+  timeline            Json?
+  resolutionSummary   String?
+  resolutionEvidence  Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  reporterUser User? @relation("ComplaintReporter", fields: [reporterUserId], references: [id], onDelete: SetNull)
+  assignedOfficer User? @relation("ComplaintAssignedOfficer", fields: [assignedOfficerId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([department])
+  @@index([district])
+  @@index([assignedOfficerId])
+  @@map("complaints")
+}
+
+model OfficerInvitation {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  fullName     String
+  email        String   @unique
+  mobile       String
+  username     String?  @unique
+  department   String
+  area         String
+  role         Role     @default(officer)
+  status       String   @default("Pending")
+  invitedById  String?
+  acceptedById String?   @unique
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  invitedBy User? @relation("InvitationCreator", fields: [invitedById], references: [id], onDelete: SetNull)
+  acceptedBy User? @relation("InvitationAcceptedBy", fields: [acceptedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([email])
+  @@index([department])
+  @@map("officer_invitations")
+}
+
+model RefreshToken {
+  id          String   @id @default(cuid())
+  jti         String   @unique
+  tokenHash   String
+  userId      String
+  userAgent   String?
+  ipAddress   String?
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Otp {
+  id        String   @id @default(cuid())
+  email     String
+  otp       String
+  purpose   OtpPurpose @default(password_reset)
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  verifiedAt DateTime?
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
+  @@index([email, purpose])
+  @@map("otps")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  metadata  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@map("audit_logs")
+}

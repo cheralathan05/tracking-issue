@@ -1,0 +1,297 @@
+{
+  "info": {
+    "_postman_id": "smartgov-auth-api",
+    "name": "SmartGov Auth API Collection",
+    "description": "Complete authentication API endpoints for SmartGov platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:4000/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Citizen Registration",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"John Doe\",\n  \"email\": \"john.doe@gmail.com\",\n  \"mobile\": \"9876543210\",\n  \"aadhaar\": \"1234 5678 9012\",\n  \"state\": \"Tamil Nadu\",\n  \"district\": \"Chennai\",\n  \"address\": \"123 Main St, Chennai\",\n  \"password\": \"SecurePass123!\",\n  \"confirmPassword\": \"SecurePass123!\"\n}"
+        },
+        "url": {
+          "raw": "{{API_BASE_URL}}/auth/register",
+          "host": ["{{API_BASE_URL}}"],
+          "path": ["auth", "register"]
+        }
+      }
+    },
+    {
+      "name": "Citizen Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifier\": \"john.doe@gmail.com\",\n  \"password\": \"SecurePass123!\",\n  \"rememberMe\": false\n}"
+        },
+        "url": {
+          "raw": "{{API_BASE_URL}}/auth/login",
+          "host": ["{{API_BASE_URL}}"],
+          "path": ["auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "Admin Registration",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Admin User\",\n  \"email\": \"admin@gmail.com\",\n  \"mobile\": \"9876543210\",\n  \"state\": \"Tamil Nadu\",\n  \"district\": \"Chennai\",\n  \"address\": \"Admin Building, Chennai\",\n  \"role\": \"super_admin\",\n  \"password\": \"AdminPass123!\",\n  \"confirmPassword\": \"AdminPass123!\"\n}"
+        },
+        "url": {
+          "raw": "{{API_BASE_URL}}/auth/admin/register",
+          "host": ["{{API_BASE_URL}}"],
+          "path": ["auth", "admin", "register"]
+        }
+      }
+    },
+    {
+      "name": "Admin Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@gmail.com\",\n  \"password\": \"AdminPass123!\",\n  \"rememberMe\": true\n}"
+        },
+        "url": {
+          "raw": "{{API_BASE_URL}}/auth/admin-login",
+          "host": ["{{API_BASE_URL}}"],
+          "path": ["auth", "admin-login"]
+        }
+      }
+    },
+    {
+      "name": "Verify OTP - Admin Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@gmail.com\",\n  \"otp\": \"123456\",\n  \"purpose\": \"admin_login\"\n}"
+        },
+        "url": {
+          "raw": "{{API_BASE_URL}}/auth/verify-otp",
+          "host": ["{{API_BASE_URL}}"],
+          "path": ["auth", "verify-otp"]
+        }
+      }
+    },
+    {
+      "name": "Verify OTP - Registration",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"john.doe@gmail.com\",\n  \"otp\": \"123456\",\n  \"purpose\": \"registration\"\n}"
+        },
+        "url": {
+          "raw": "{{API_BASE_URL}}/auth/verify-otp",
+          "host": ["{{API_BASE_URL}}"],
+          "path": ["auth", "verify-otp"]
+        }
+      }
+    },
+    {
+      "name": "Verify OTP - Password Reset",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"john.doe@gmail.com\",\n  \"otp\": \"123456\",\n  \"purpose\": \"password_reset\"\n}"
+        },
+        "url": {
+          "raw": "{{API_BASE_URL}}/auth/verify-otp",
+          "host": ["{{API_BASE_URL}}"],
+          "path": ["auth", "verify-otp"]
+        }
+      }
+    },
+    {
+      "name": "Forgot Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"john.doe@gmail.com\"\n}"
+        },
+        "url": {
+          "raw": "{{API_BASE_URL}}/auth/forgot-password",
+          "host": ["{{API_BASE_URL}}"],
+          "path": ["auth", "forgot-password"]
+        }
+      }
+    },
+    {
+      "name": "Reset Password",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"john.doe@gmail.com\",\n  \"newPassword\": \"NewSecurePass456!\",\n  \"confirmPassword\": \"NewSecurePass456!\"\n}"
+        },
+        "url": {
+          "raw": "{{API_BASE_URL}}/auth/reset-password",
+          "host": ["{{API_BASE_URL}}"],
+          "path": ["auth", "reset-password"]
+        }
+      }
+    },
+    {
+      "name": "Refresh Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{API_BASE_URL}}/auth/refresh-token",
+          "host": ["{{API_BASE_URL}}"],
+          "path": ["auth", "refresh-token"]
+        }
+      }
+    },
+    {
+      "name": "Get Profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ACCESS_TOKEN}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{API_BASE_URL}}/auth/profile",
+          "host": ["{{API_BASE_URL}}"],
+          "path": ["auth", "profile"]
+        }
+      }
+    },
+    {
+      "name": "Logout",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{ACCESS_TOKEN}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{API_BASE_URL}}/auth/logout",
+          "host": ["{{API_BASE_URL}}"],
+          "path": ["auth", "logout"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "API_BASE_URL",
+      "value": "http://localhost:4000/api",
+      "type": "string"
+    },
+    {
+      "key": "ACCESS_TOKEN",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "REFRESH_TOKEN",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
