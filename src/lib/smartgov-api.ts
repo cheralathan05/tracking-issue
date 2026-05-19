@@ -134,6 +134,42 @@ export interface OfficerSummary {
   updatedAt?: string;
 }
 
+export interface AdminUserRecord {
+  id: string;
+  fullName: string;
+  username?: string | null;
+  email: string;
+  mobile: string;
+  state: string;
+  district: string;
+  address: string;
+  department?: string | null;
+  jurisdictionArea?: string | null;
+  officerCode?: string | null;
+  role: string;
+  isVerified: boolean;
+  emailVerified: boolean;
+  failedLoginAttempts: number;
+  lockedUntil?: string | null;
+  lastLoginAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminUserCounts {
+  total: number;
+  citizens: number;
+  officers: number;
+  admins: number;
+  verified: number;
+  pending: number;
+}
+
+export interface AdminUserListResult {
+  users: AdminUserRecord[];
+  counts: AdminUserCounts;
+}
+
 export interface ComplaintRecord {
   id: string;
   grievanceId: string;
@@ -318,6 +354,39 @@ export function acceptOfficerInvitation(
 
 export function listOfficers() {
   return request<{ officers: OfficerSummary[] }>("/officers", { method: "GET" });
+}
+
+export function listAdminUsers(query?: {
+  scope?: "all" | "citizen" | "officer" | "admin";
+  verification?: "all" | "verified" | "pending";
+  search?: string;
+}) {
+  return request<AdminUserListResult>(
+    "/users",
+    { method: "GET" },
+    query as Record<string, string | number | boolean | null | undefined>,
+  );
+}
+
+export function updateAdminUser(
+  id: string,
+  payload: {
+    role?:
+      | "super_admin"
+      | "state_admin"
+      | "district_officer"
+      | "department_officer"
+      | "citizen"
+      | "admin"
+      | "officer";
+    isVerified?: boolean;
+    emailVerified?: boolean;
+  },
+) {
+  return request<{ user: AdminUserRecord }>(`/users/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function requestComplaintSummaryForDashboard() {

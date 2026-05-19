@@ -7,6 +7,7 @@ import { env } from "./config/env.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { complaintRouter } from "./routes/complaint.routes.js";
 import { officerRouter } from "./routes/officer.routes.js";
+import { usersRouter } from "./routes/users.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import { AppError } from "./utils/errors.js";
 
@@ -55,6 +56,7 @@ app.get("/health", (_req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/complaints", complaintRouter);
 app.use("/api/officers", officerRouter);
+app.use("/api/users", usersRouter);
 
 app.use((_req, _res, next) => {
   next(new AppError("Route not found", 404));

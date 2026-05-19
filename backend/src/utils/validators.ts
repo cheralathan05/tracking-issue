@@ -221,6 +221,39 @@ export const complaintQuerySchema = z.object({
   search: z.string().trim().optional(),
 });
 
+export const adminUserQuerySchema = z.object({
+  scope: z.enum(["all", "citizen", "officer", "admin"]).optional().default("all"),
+  verification: z.enum(["all", "verified", "pending"]).optional().default("all"),
+  search: z.string().trim().optional(),
+});
+
+export const adminUserUpdateSchema = z
+  .object({
+    role: z
+      .enum([
+        "super_admin",
+        "state_admin",
+        "district_officer",
+        "department_officer",
+        "citizen",
+        "admin",
+        "officer",
+      ])
+      .optional(),
+    isVerified: z.boolean().optional(),
+    emailVerified: z.boolean().optional(),
+  })
+  .refine(
+    (data) =>
+      typeof data.role !== "undefined" ||
+      typeof data.isVerified !== "undefined" ||
+      typeof data.emailVerified !== "undefined",
+    {
+      message: "At least one field is required",
+      path: ["role"],
+    },
+  );
+
 export const officerStatusSchema = z.enum(["Pending", "Accepted", "Revoked", "Expired"]);
 
 export type ComplaintSubmissionInput = z.infer<typeof complaintSubmissionSchema>;
@@ -230,3 +263,5 @@ export type ComplaintMessageInput = z.infer<typeof complaintMessageSchema>;
 export type OfficerInvitationInput = z.infer<typeof officerInvitationSchema>;
 export type AcceptOfficerInvitationInput = z.infer<typeof acceptOfficerInvitationSchema>;
 export type ComplaintQueryInput = z.infer<typeof complaintQuerySchema>;
+export type AdminUserQueryInput = z.infer<typeof adminUserQuerySchema>;
+export type AdminUserUpdateInput = z.infer<typeof adminUserUpdateSchema>;
