@@ -199,14 +199,27 @@ export const officerInvitationSchema = z.object({
   fullName: textSchema.min(3, "Officer name must be at least 3 characters long"),
   email: emailSchema,
   mobile: mobileSchema,
-  department: textSchema,
-  area: textSchema,
+  department: z.enum([
+    "Water Supply",
+    "Electricity",
+    "Roads",
+    "Sanitation",
+    "Public Safety",
+    "Health",
+    "Corruption",
+    "Others",
+  ]),
+  area: z
+    .string()
+    .trim()
+    .min(3, "Assigned area must be at least 3 characters long")
+    .regex(/^[A-Za-z0-9\s.,'()-]+$/, "Assigned area contains invalid characters"),
   username: z.string().trim().min(3, "Username must be at least 3 characters long").optional(),
 });
 
 export const acceptOfficerInvitationSchema = z
   .object({
-    username: z.string().trim().min(3, "Username must be at least 3 characters long"),
+    username: z.string().trim().min(3, "Username must be at least 3 characters long").optional(),
     password: passwordSchema,
     confirmPassword: passwordSchema,
   })

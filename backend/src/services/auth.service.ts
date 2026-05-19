@@ -416,6 +416,15 @@ export async function loginAdmin(input: AdminLoginInput, meta?: AuthMeta) {
   const user = await findUserByIdentifier(input.identifier);
 
   if (!user) {
+    // If identifier looks like an email, check for a pending officer invitation
+    if (isEmailAddress(input.identifier)) {
+      const email = normalizeEmail(input.identifier);
+      const invitation = await prisma.officerInvitation.findUnique({ where: { email } });
+      if (invitation && invitation.status === "Pending" && invitation.expiresAt.getTime() > Date.now()) {
+        throw new AppError("Only activated officers can sign in. Please accept your invitation first.", 403);
+      }
+    }
+
     throw new AppError("Invalid login credentials", 401);
   }
 

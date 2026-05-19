@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Copy, Mail, ShieldCheck, Send } from "lucide-react";
+import { Copy, Mail, RefreshCcw, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { createOfficerInvitation } from "@/lib/smartgov-api";
+import { createOfficerInvitation, regenerateOfficerInvitation, resendOfficerInvitation } from "@/lib/smartgov-api";
+
+const DEPARTMENTS = ["Water Supply", "Electricity", "Roads", "Sanitation", "Public Safety", "Health", "Corruption", "Others"] as const;
 
 export const Route = createFileRoute("/admin/invite")({
   head: () => ({ meta: [{ title: "Invite officer — Admin" }] }),
@@ -16,17 +18,21 @@ function InviteOfficerPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
-  const [department, setDepartment] = useState("Water Supply Dept.");
+  const [department, setDepartment] = useState<(typeof DEPARTMENTS)[number]>("Water Supply");
   const [area, setArea] = useState("");
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [actionLoading, setActionLoading] = useState<"resend" | "regenerate" | null>(null);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSubmitSuccess(false);
 
     try {
       const result = await createOfficerInvitation({
@@ -38,14 +44,46 @@ function InviteOfficerPage() {
         username: username.trim() || undefined,
       });
 
-      setInviteUrl(result.invitation.invitationUrl);
-      toast.success(result.message);
+      setInviteUrl(result.invitation.invitationUrl ?? null);
+      setInviteCode(result.invitation.code);
+      setSubmitSuccess(true);
+      toast.success("Invitation sent successfully");
     } catch (submitError) {
       setError(
         submitError instanceof Error ? submitError.message : "Unable to create officer invitation",
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendEmail = async () => {
+    if (!inviteCode) return;
+    setActionLoading("resend");
+    setError(null);
+    try {
+      const result = await resendOfficerInvitation(inviteCode);
+      setInviteUrl(result.invitation.invitationUrl ?? inviteUrl);
+      toast.success("Invitation email sent");
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : "Unable to send invitation email");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRegenerateLink = async () => {
+    if (!inviteCode) return;
+    setActionLoading("regenerate");
+    setError(null);
+    try {
+      const result = await regenerateOfficerInvitation(inviteCode);
+      setInviteUrl(result.invitation.invitationUrl ?? inviteUrl);
+      toast.success("Invitation link regenerated");
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : "Unable to regenerate invitation link");
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -101,13 +139,17 @@ function InviteOfficerPage() {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="department">Department</Label>
-            <Input
+            <select
               id="department"
               value={department}
-              onChange={(event) => setDepartment(event.target.value)}
+              onChange={(event) => setDepartment(event.target.value as (typeof DEPARTMENTS)[number])}
               required
-              placeholder="Water Supply Dept."
-            />
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              {DEPARTMENTS.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="area">Assigned area</Label>
@@ -134,7 +176,7 @@ function InviteOfficerPage() {
               id="inviteLink"
               value={inviteUrl ?? ""}
               readOnly
-              placeholder="The generated invite URL will appear here after submission"
+              placeholder="The generated invite URL will appear here"
             />
           </div>
         </div>
@@ -146,7 +188,7 @@ function InviteOfficerPage() {
           className="bg-gradient-primary text-primary-foreground shadow-elegant"
           disabled={loading}
         >
-          {loading ? "Creating invite…" : "Create invitation"}
+          {loading ? "Creating invitation..." : submitSuccess ? "Invitation Sent Successfully" : "Create Invitation"}
         </Button>
       </form>
 
@@ -155,24 +197,41 @@ function InviteOfficerPage() {
           <ShieldCheck className="h-4 w-4" /> Admin account creation
         </div>
         <p className="mt-3 text-sm text-muted-foreground">
-          Once the invitation is created, send the generated link through email or SMS. The officer
-          can activate their account by choosing a username and password.
+          Once the invitation is created, the officer can only activate through the secure link. Login
+          is blocked until account activation is completed.
         </p>
         {inviteUrl ? (
           <div className="mt-4 rounded-lg border border-dashed border-border bg-secondary/40 p-4 text-sm">
             <div className="font-medium">Generated link</div>
             <div className="mt-1 break-all text-xs text-muted-foreground">{inviteUrl}</div>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-3"
-              onClick={async () => {
-                await navigator.clipboard.writeText(inviteUrl);
-                toast.success("Invite link copied");
-              }}
-            >
-              <Copy className="mr-1.5 h-4 w-4" /> Copy link
-            </Button>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(inviteUrl);
+                  toast.success("Invite link copied");
+                }}
+              >
+                <Copy className="mr-1.5 h-4 w-4" /> Copy Link
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={actionLoading !== null}
+                onClick={handleResendEmail}
+              >
+                <Mail className="mr-1.5 h-4 w-4" /> {actionLoading === "resend" ? "Sending..." : "Send Email"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={actionLoading !== null}
+                onClick={handleRegenerateLink}
+              >
+                <RefreshCcw className="mr-1.5 h-4 w-4" /> {actionLoading === "regenerate" ? "Regenerating..." : "Regenerate"}
+              </Button>
+            </div>
           </div>
         ) : null}
       </div>

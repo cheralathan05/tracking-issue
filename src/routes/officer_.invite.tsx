@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { acceptOfficerInvitation, getOfficerInvitation } from "@/lib/smartgov-api";
 
 const inviteSearchSchema = z.object({
-  code: z.string().optional(),
+  token: z.string().optional(),
 });
 
 export const Route = createFileRoute("/officer_/invite")({
@@ -18,11 +18,11 @@ export const Route = createFileRoute("/officer_/invite")({
   component: OfficerInviteAccept,
 });
 
-function OfficerInviteAccept() {
+export function OfficerInviteAccept() {
   const navigate = useNavigate();
   const search = Route.useSearch();
   const [loading, setLoading] = useState(false);
-  const [loadingInvite, setLoadingInvite] = useState(Boolean(search.code));
+  const [loadingInvite, setLoadingInvite] = useState(Boolean(search.token));
   const [invite, setInvite] = useState<{
     fullName: string;
     email: string;
@@ -30,6 +30,7 @@ function OfficerInviteAccept() {
     department: string;
     area: string;
     code: string;
+    username?: string | null;
   } | null>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -37,13 +38,13 @@ function OfficerInviteAccept() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!search.code) {
+    if (!search.token) {
       setLoadingInvite(false);
       return;
     }
 
     let mounted = true;
-    getOfficerInvitation(search.code)
+    getOfficerInvitation(search.token)
       .then((result) => {
         if (mounted) {
           setInvite(result.invitation);
@@ -64,12 +65,12 @@ function OfficerInviteAccept() {
     return () => {
       mounted = false;
     };
-  }, [search.code]);
+  }, [search.token]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!search.code) {
-      setError("Missing invitation code");
+    if (!search.token) {
+      setError("Missing invitation token");
       return;
     }
 
@@ -77,8 +78,8 @@ function OfficerInviteAccept() {
     setError(null);
 
     try {
-      await acceptOfficerInvitation(search.code, {
-        username,
+      await acceptOfficerInvitation(search.token, {
+        username: invite?.username ? undefined : username,
         password,
         confirmPassword,
       });
@@ -145,11 +146,18 @@ function OfficerInviteAccept() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="username">Choose username</Label>
-              <Input id="username" value={username} onChange={(event) => setUsername(event.target.value)} required placeholder="r.kumar" />
+              <Input
+                id="username"
+                value={invite?.username ?? username}
+                onChange={(event) => setUsername(event.target.value)}
+                required={!invite?.username}
+                readOnly={Boolean(invite?.username)}
+                placeholder={invite?.username ? "Username already fixed by admin" : "r.kumar"}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="code">Invite code</Label>
-              <Input id="code" value={search.code ?? ""} readOnly />
+              <Input id="code" value={invite?.code ?? ""} readOnly />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="pw">Password</Label>

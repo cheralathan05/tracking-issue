@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import jwt from "jsonwebtoken";
 
 import { prisma } from "../config/prisma.js";
 import { env } from "../config/env.js";
@@ -15,6 +16,13 @@ import { generateInvitationCode, generateOfficerCode } from "../utils/complaint-
 type AuthMeta = {
   ipAddress?: string;
   userAgent?: string;
+  origin?: string;
+};
+
+type InviteTokenPayload = {
+  tokenType: "officer_invite";
+  code: string;
+  email: string;
 };
 
 function buildTimelineMessage(action: string, note?: string) {
@@ -46,6 +54,94 @@ function normalizeInviteStatus(status: string) {
   return status.trim();
 }
 
+function isInvitationPending(invitation: { status: string; expiresAt: Date }) {
+  return invitation.status === "Pending" && invitation.expiresAt.getTime() > Date.now();
+}
+
+function normalizeOrigin(origin: string) {
+  return origin.replace(/\/$/, "");
+}
+
+function resolveFrontendOrigin(requestOrigin?: string) {
+  const configuredOrigins = env.FRONTEND_ORIGIN.split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (requestOrigin) {
+    const normalizedRequestOrigin = normalizeOrigin(requestOrigin);
+    const matchingConfiguredOrigin = configuredOrigins.find(
+      (origin) => normalizeOrigin(origin) === normalizedRequestOrigin,
+    );
+
+    if (matchingConfiguredOrigin) {
+      return normalizeOrigin(matchingConfiguredOrigin);
+    }
+  }
+
+  const preferredLocalOrigin = configuredOrigins.find((origin) => {
+    const normalizedOrigin = normalizeOrigin(origin);
+    return normalizedOrigin === "http://localhost:3000" || normalizedOrigin === "http://127.0.0.1:3000";
+  });
+
+  return normalizeOrigin(preferredLocalOrigin ?? configuredOrigins[0] ?? "http://localhost:3000");
+}
+
+function createActivationToken(invitation: { code: string; email: string; expiresAt: Date }) {
+  const secondsUntilExpiry = Math.max(1, Math.floor((invitation.expiresAt.getTime() - Date.now()) / 1000));
+
+  return jwt.sign(
+    {
+      tokenType: "officer_invite",
+      code: invitation.code,
+      email: invitation.email,
+    } as InviteTokenPayload,
+    env.JWT_SECRET,
+    { expiresIn: secondsUntilExpiry },
+  );
+}
+
+function verifyActivationToken(token: string): InviteTokenPayload {
+  try {
+    const payload = jwt.verify(token, env.JWT_SECRET) as InviteTokenPayload;
+
+    if (
+      payload.tokenType !== "officer_invite"
+      || typeof payload.code !== "string"
+      || typeof payload.email !== "string"
+    ) {
+      throw new AppError("Invalid invitation token", 400);
+    }
+
+    return payload;
+  } catch {
+    throw new AppError("Invalid or expired invitation token", 400);
+  }
+}
+
+function buildInvitationUrl(origin: string, token: string) {
+  return `${origin}/officer/activate?token=${encodeURIComponent(token)}`;
+}
+
+async function ensureInvitationNotExpired(invitation: { code: string; status: string; expiresAt: Date }) {
+  if (invitation.status === "Pending" && invitation.expiresAt.getTime() < Date.now()) {
+    await prisma.officerInvitation.update({
+      where: { code: invitation.code },
+      data: { status: "Expired" },
+    });
+    throw new AppError("Invitation has expired", 410);
+  }
+}
+
+function serializeInvitation(invitation: any, invitationUrl?: string) {
+  return {
+    ...invitation,
+    createdAt: invitation.createdAt.toISOString(),
+    updatedAt: invitation.updatedAt.toISOString(),
+    expiresAt: invitation.expiresAt.toISOString(),
+    ...(invitationUrl ? { invitationUrl } : {}),
+  };
+}
+
 export async function createOfficerInvitation(
   input: OfficerInvitationInput,
   creatorUserId?: string,
@@ -55,42 +151,74 @@ export async function createOfficerInvitation(
   const existingUser = await prisma.user.findUnique({ where: { email: input.email } });
 
   if (existingUser) {
-    throw new AppError("An account already exists for this email", 409);
+    throw new AppError("Officer already exists", 409);
+  }
+
+  if (input.username) {
+    const existingUsername = await prisma.user.findUnique({ where: { username: input.username } });
+    if (existingUsername) {
+      throw new AppError("Username already exists", 409);
+    }
   }
 
   // If there's an existing invitation for this email, handle it
   const existingInvitation = await prisma.officerInvitation.findUnique({ where: { email: input.email } });
 
-  if (existingInvitation) {
-    // If still pending and not expired, prevent duplicate invites
-    if (existingInvitation.status === "Pending" && existingInvitation.expiresAt.getTime() > Date.now()) {
-      throw new AppError("An active invitation already exists for this email", 409);
-    }
-
-    // If invitation expired or not pending, mark expired and allow new invite creation
-    if (existingInvitation.status === "Pending" && existingInvitation.expiresAt.getTime() <= Date.now()) {
-      await prisma.officerInvitation.update({ where: { email: input.email }, data: { status: "Expired" } });
-    }
+  if (existingInvitation && isInvitationPending(existingInvitation)) {
+    throw new AppError("Pending invitation already sent", 409);
   }
 
   const code = await ensureUniqueInvitationCode();
-  const invitation = await prisma.officerInvitation.create({
-    data: {
-      code,
-      fullName: input.fullName,
-      email: input.email,
-      mobile: input.mobile,
-      username: input.username || null,
-      department: input.department,
-      area: input.area,
-      invitedById: creatorUserId,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      status: "Pending",
-    },
-  });
+  const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+  let invitation: any;
+  try {
+    if (existingInvitation) {
+      invitation = await prisma.officerInvitation.update({
+        where: { email: input.email },
+        data: {
+          code,
+          fullName: input.fullName,
+          mobile: input.mobile,
+          username: input.username || null,
+          department: input.department,
+          area: input.area,
+          invitedById: creatorUserId,
+          expiresAt,
+          status: "Pending",
+          acceptedAt: null,
+          acceptedById: null,
+        },
+      });
+    } else {
+      invitation = await prisma.officerInvitation.create({
+        data: {
+          code,
+          fullName: input.fullName,
+          email: input.email,
+          mobile: input.mobile,
+          username: input.username || null,
+          department: input.department,
+          area: input.area,
+          invitedById: creatorUserId,
+          expiresAt,
+          status: "Pending",
+        },
+      });
+    }
+  } catch (err: any) {
+    // Handle unique constraint race / Prisma errors gracefully
+    if (err?.code === "P2002") {
+      // Unique constraint failed (likely on email or code)
+      throw new AppError("Officer invitation already exists for this email", 409);
+    }
 
-  const origin = env.FRONTEND_ORIGIN.split(",").map((value) => value.trim()).find(Boolean) ?? "http://localhost:3000";
-  const invitationUrl = `${origin.replace(/\/$/, "")}/officer/invite?code=${encodeURIComponent(invitation.code)}`;
+    // Re-throw other unexpected errors
+    throw err;
+  }
+
+  const origin = resolveFrontendOrigin(meta?.origin);
+  const activationToken = createActivationToken(invitation);
+  const invitationUrl = buildInvitationUrl(origin, activationToken);
 
   // attempt to send email (best-effort)
   try {
@@ -108,22 +236,19 @@ export async function createOfficerInvitation(
   }
 
   return {
-    message: "Officer invitation created successfully",
+    message: "Invitation sent successfully",
     invitation: {
-      ...invitation,
-      createdAt: invitation.createdAt.toISOString(),
-      updatedAt: invitation.updatedAt.toISOString(),
-      expiresAt: invitation.expiresAt.toISOString(),
-      invitationUrl,
-      sentVia: ["email", "sms"],
+      ...serializeInvitation(invitation, invitationUrl),
+      sentVia: ["email"],
       meta,
     },
   };
 }
 
-export async function getOfficerInvitation(code: string) {
+export async function getOfficerInvitationByToken(token: string, requestOrigin?: string) {
+  const payload = verifyActivationToken(token);
   const invitation = await prisma.officerInvitation.findUnique({
-    where: { code },
+    where: { code: payload.code },
     include: {
       invitedBy: { select: officerSummarySelect },
       acceptedBy: { select: officerSummarySelect },
@@ -134,49 +259,53 @@ export async function getOfficerInvitation(code: string) {
     throw new AppError("Invitation not found", 404);
   }
 
-  if (invitation.status === "Pending" && invitation.expiresAt.getTime() < Date.now()) {
-    await prisma.officerInvitation.update({
-      where: { code },
-      data: { status: "Expired" },
-    });
-
-    throw new AppError("Invitation has expired", 410);
+  if (invitation.email.toLowerCase() !== payload.email.toLowerCase()) {
+    throw new AppError("Invalid invitation token", 400);
   }
 
+  await ensureInvitationNotExpired(invitation);
+
+  const origin = resolveFrontendOrigin(requestOrigin);
+  const invitationUrl = buildInvitationUrl(origin, createActivationToken(invitation));
+
   return {
-    invitation: {
-      ...invitation,
-      createdAt: invitation.createdAt.toISOString(),
-      updatedAt: invitation.updatedAt.toISOString(),
-      expiresAt: invitation.expiresAt.toISOString(),
-    },
+    invitation: serializeInvitation(invitation, invitationUrl),
   };
 }
 
 export async function acceptOfficerInvitation(
-  code: string,
+  token: string,
   input: AcceptOfficerInvitationInput,
   meta?: AuthMeta,
 ) {
-  const invitation = await prisma.officerInvitation.findUnique({ where: { code } });
+  const payload = verifyActivationToken(token);
+  const invitation = await prisma.officerInvitation.findUnique({ where: { code: payload.code } });
 
   if (!invitation) {
     throw new AppError("Invitation not found", 404);
   }
 
+  if (invitation.email.toLowerCase() !== payload.email.toLowerCase()) {
+    throw new AppError("Invalid invitation token", 400);
+  }
+
+  await ensureInvitationNotExpired(invitation);
+
   if (invitation.status !== "Pending") {
     throw new AppError("Invitation is no longer active", 409);
   }
 
-  if (invitation.expiresAt.getTime() < Date.now()) {
-    await prisma.officerInvitation.update({
-      where: { code },
-      data: { status: "Expired" },
-    });
-    throw new AppError("Invitation has expired", 410);
+  const requestedUsername = input.username?.trim();
+  const username = invitation.username ?? requestedUsername;
+
+  if (!username) {
+    throw new AppError("Username is required for account activation", 400);
   }
 
-  const username = input.username.trim();
+  if (invitation.username && requestedUsername && requestedUsername !== invitation.username) {
+    throw new AppError("Username is already fixed by admin", 409);
+  }
+
   const password = await hashPassword(input.password);
   const officerCode = await ensureUniqueOfficerCode();
   const existingUsername = await prisma.user.findUnique({ where: { username } });
@@ -186,33 +315,47 @@ export async function acceptOfficerInvitation(
     throw new AppError("Username already exists", 409);
   }
 
+  // If email exists, check if it's an unverified/incomplete account that can be replaced
   if (existingEmail) {
-    throw new AppError("An account already exists for this email", 409);
+    // Only allow replacement if the existing account is unverified and not an officer
+    if (existingEmail.isVerified || (existingEmail.role && existingEmail.role !== "citizen")) {
+      throw new AppError("An account already exists for this email", 409);
+    }
+    // Delete the unverified account so we can create the officer account
+    await prisma.user.delete({ where: { id: existingEmail.id } });
   }
 
-  const user = await prisma.user.create({
-    data: {
-      fullName: invitation.fullName,
-      username,
-      email: invitation.email,
-      mobile: invitation.mobile,
-      aadhaar: crypto.randomUUID(),
-      state: invitation.area,
-      district: invitation.area,
-      address: `${invitation.department}, ${invitation.area}`,
-      department: invitation.department,
-      jurisdictionArea: invitation.area,
-      officerCode,
-      password,
-      role: invitation.role,
-      isVerified: true,
-      emailVerified: true,
-    },
-    select: officerSummarySelect,
-  });
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        fullName: invitation.fullName,
+        username,
+        email: invitation.email,
+        mobile: invitation.mobile,
+        aadhaar: crypto.randomUUID(),
+        state: invitation.area,
+        district: invitation.area,
+        address: `${invitation.department}, ${invitation.area}`,
+        department: invitation.department,
+        jurisdictionArea: invitation.area,
+        officerCode,
+        password,
+        role: invitation.role,
+        isVerified: true,
+        emailVerified: true,
+      },
+      select: officerSummarySelect,
+    });
+  } catch (err: any) {
+    if (err?.code === "P2002") {
+      throw new AppError("Username or email already exists", 409);
+    }
+    throw err;
+  }
 
   await prisma.officerInvitation.update({
-    where: { code },
+    where: { code: invitation.code },
     data: {
       status: "Accepted",
       acceptedAt: new Date(),
@@ -225,7 +368,7 @@ export async function acceptOfficerInvitation(
       action: "officer_invitation_accepted",
       userId: user.id,
       metadata: {
-        invitationCode: code,
+        invitationCode: invitation.code,
         department: invitation.department,
         area: invitation.area,
       } as never,
@@ -238,9 +381,62 @@ export async function acceptOfficerInvitation(
     message: "Officer account activated successfully",
     user,
     invitation: {
-      code,
+      code: invitation.code,
       status: normalizeInviteStatus("Accepted"),
     },
+  };
+}
+
+export async function regenerateOfficerInvitationLink(code: string, requestOrigin?: string) {
+  const invitation = await prisma.officerInvitation.findUnique({ where: { code } });
+
+  if (!invitation) {
+    throw new AppError("Invitation not found", 404);
+  }
+
+  await ensureInvitationNotExpired(invitation);
+
+  if (invitation.status !== "Pending") {
+    throw new AppError("Invitation is no longer active", 409);
+  }
+
+  const origin = resolveFrontendOrigin(requestOrigin);
+  const invitationUrl = buildInvitationUrl(origin, createActivationToken(invitation));
+
+  return {
+    message: "Invitation link regenerated",
+    invitation: serializeInvitation(invitation, invitationUrl),
+  };
+}
+
+export async function resendOfficerInvitation(code: string, requestOrigin?: string) {
+  const invitation = await prisma.officerInvitation.findUnique({ where: { code } });
+
+  if (!invitation) {
+    throw new AppError("Invitation not found", 404);
+  }
+
+  await ensureInvitationNotExpired(invitation);
+
+  if (invitation.status !== "Pending") {
+    throw new AppError("Invitation is no longer active", 409);
+  }
+
+  const origin = resolveFrontendOrigin(requestOrigin);
+  const invitationUrl = buildInvitationUrl(origin, createActivationToken(invitation));
+
+  await sendOfficerInvitationEmail({
+    to: invitation.email,
+    fullName: invitation.fullName,
+    department: invitation.department,
+    area: invitation.area,
+    invitationUrl,
+    expiresAt: invitation.expiresAt.toISOString(),
+  });
+
+  return {
+    message: "Invitation email sent successfully",
+    invitation: serializeInvitation(invitation, invitationUrl),
   };
 }
 

@@ -79,18 +79,28 @@ export async function sendOfficerInvitationEmail(payload: {
 }) {
   const { to, fullName, department, area, invitationUrl, expiresAt } = payload;
 
-  const subject = `You are invited to join SmartGov as ${department} officer`;
+  const subject = "SmartGov Officer Invitation";
 
-  const text = [`Hello ${fullName},`, `You have been invited to join SmartGov as a ${department} officer for ${area}.`, `Activate your account: ${invitationUrl}`, `This link expires at ${expiresAt}.`, "If you did not expect this invitation, ignore this email."].join("\n\n");
+  const text = [
+    `Hello ${fullName},`,
+    "You have been invited as a government officer in SmartGov.",
+    `Department: ${department}`,
+    `Assigned area: ${area}`,
+    `Activate account: ${invitationUrl}`,
+    `This link expires at ${expiresAt}.`,
+    "If you did not expect this invitation, ignore this email.",
+  ].join("\n\n");
 
   const html = `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
-      <h2 style="margin-bottom:12px;">You are invited to SmartGov</h2>
+      <h2 style="margin-bottom:12px;">SmartGov Officer Invitation</h2>
       <p>Hello <strong>${fullName}</strong>,</p>
-      <p>You have been invited to join <strong>SmartGov</strong> as a <strong>${department}</strong> officer for <strong>${area}</strong>.</p>
-      <p style="margin:12px 0;">Click the button below to activate your account. The link expires on <strong>${expiresAt}</strong>.</p>
+      <p>You have been invited as a government officer in <strong>SmartGov</strong>.</p>
+      <p><strong>Department:</strong> ${department}</p>
+      <p><strong>Assigned area:</strong> ${area}</p>
+      <p style="margin:12px 0;">Click the button below to activate your account. This link expires on <strong>${expiresAt}</strong>.</p>
       <div style="margin: 18px 0;">
-        <a href="${invitationUrl}" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#0f172a;color:#fff;text-decoration:none;font-weight:600;">Activate account</a>
+        <a href="${invitationUrl}" style="display:inline-block;padding:12px 18px;border-radius:8px;background:#0f172a;color:#fff;text-decoration:none;font-weight:600;">Activate Account</a>
       </div>
       <p>If the button above doesn't work, copy-paste this URL into your browser:</p>
       <div style="word-break:break-all;color:#6b7280">${invitationUrl}</div>

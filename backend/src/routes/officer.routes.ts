@@ -11,6 +11,8 @@ import {
   fetchOfficerInvitation,
   getAllOfficers,
   inviteOfficer,
+  regenerateInvitationLink,
+  resendInvitation,
 } from "../controllers/officer.controller.js";
 
 export const officerRouter = Router();
@@ -23,5 +25,17 @@ officerRouter.post(
   validateBody(officerInvitationSchema),
   inviteOfficer,
 );
-officerRouter.get("/invitations/:code", fetchOfficerInvitation);
-officerRouter.post("/invitations/:code/accept", validateBody(acceptOfficerInvitationSchema), acceptInvitation);
+officerRouter.get("/invitations/resolve", fetchOfficerInvitation);
+officerRouter.post("/invitations/accept", validateBody(acceptOfficerInvitationSchema), acceptInvitation);
+officerRouter.post(
+  "/invitations/:code/regenerate",
+  requireAuth,
+  requireRole("super_admin", "state_admin", "district_officer", "department_officer", "admin"),
+  regenerateInvitationLink,
+);
+officerRouter.post(
+  "/invitations/:code/resend",
+  requireAuth,
+  requireRole("super_admin", "state_admin", "district_officer", "department_officer", "admin"),
+  resendInvitation,
+);

@@ -236,8 +236,8 @@ export interface OfficerInvitationRecord {
   acceptedAt?: string | null;
   createdAt: string;
   updatedAt: string;
-  invitationUrl: string;
-  sentVia: string[];
+  invitationUrl?: string;
+  sentVia?: string[];
 }
 
 export function createComplaint(payload: {
@@ -332,23 +332,35 @@ export function createOfficerInvitation(payload: {
   });
 }
 
-export function getOfficerInvitation(code: string) {
-  return request<{ invitation: OfficerInvitationRecord }>(`/officers/invitations/${encodeURIComponent(code)}`, {
+export function getOfficerInvitation(token: string) {
+  return request<{ invitation: OfficerInvitationRecord }>("/officers/invitations/resolve", {
     method: "GET",
-  });
+  }, { token });
 }
 
 export function acceptOfficerInvitation(
-  code: string,
+  token: string,
   payload: {
-    username: string;
+    username?: string;
     password: string;
     confirmPassword: string;
   },
 ) {
-  return request<{ user: OfficerSummary }>(`/officers/invitations/${encodeURIComponent(code)}/accept`, {
+  return request<{ user: OfficerSummary }>("/officers/invitations/accept", {
     method: "POST",
     body: JSON.stringify(payload),
+  }, { token });
+}
+
+export function resendOfficerInvitation(code: string) {
+  return request<{ invitation: OfficerInvitationRecord }>(`/officers/invitations/${encodeURIComponent(code)}/resend`, {
+    method: "POST",
+  });
+}
+
+export function regenerateOfficerInvitation(code: string) {
+  return request<{ invitation: OfficerInvitationRecord }>(`/officers/invitations/${encodeURIComponent(code)}/regenerate`, {
+    method: "POST",
   });
 }
 

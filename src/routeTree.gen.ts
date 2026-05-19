@@ -26,6 +26,7 @@ import { Route as OfficerIndexRouteImport } from './routes/officer.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as OfficerLoginRouteImport } from './routes/officer_.login'
 import { Route as OfficerInviteRouteImport } from './routes/officer_.invite'
+import { Route as OfficerActivateRouteImport } from './routes/officer_.activate'
 import { Route as OfficerResolutionRouteImport } from './routes/officer.resolution'
 import { Route as OfficerDashboardRouteImport } from './routes/officer.dashboard'
 import { Route as AdminSignupRouteImport } from './routes/admin_.signup'
@@ -135,6 +136,11 @@ const OfficerLoginRoute = OfficerLoginRouteImport.update({
 const OfficerInviteRoute = OfficerInviteRouteImport.update({
   id: '/officer_/invite',
   path: '/officer/invite',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfficerActivateRoute = OfficerActivateRouteImport.update({
+  id: '/officer_/activate',
+  path: '/officer/activate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OfficerResolutionRoute = OfficerResolutionRouteImport.update({
@@ -300,6 +306,7 @@ export interface FileRoutesByFullPath {
   '/admin/signup': typeof AdminSignupRoute
   '/officer/dashboard': typeof OfficerDashboardRoute
   '/officer/resolution': typeof OfficerResolutionRoute
+  '/officer/activate': typeof OfficerActivateRoute
   '/officer/invite': typeof OfficerInviteRoute
   '/officer/login': typeof OfficerLoginRoute
   '/admin/': typeof AdminIndexRoute
@@ -342,6 +349,7 @@ export interface FileRoutesByTo {
   '/admin/signup': typeof AdminSignupRoute
   '/officer/dashboard': typeof OfficerDashboardRoute
   '/officer/resolution': typeof OfficerResolutionRoute
+  '/officer/activate': typeof OfficerActivateRoute
   '/officer/invite': typeof OfficerInviteRoute
   '/officer/login': typeof OfficerLoginRoute
   '/admin': typeof AdminIndexRoute
@@ -388,6 +396,7 @@ export interface FileRoutesById {
   '/admin_/signup': typeof AdminSignupRoute
   '/officer/dashboard': typeof OfficerDashboardRoute
   '/officer/resolution': typeof OfficerResolutionRoute
+  '/officer_/activate': typeof OfficerActivateRoute
   '/officer_/invite': typeof OfficerInviteRoute
   '/officer_/login': typeof OfficerLoginRoute
   '/admin/': typeof AdminIndexRoute
@@ -434,6 +443,7 @@ export interface FileRouteTypes {
     | '/admin/signup'
     | '/officer/dashboard'
     | '/officer/resolution'
+    | '/officer/activate'
     | '/officer/invite'
     | '/officer/login'
     | '/admin/'
@@ -476,6 +486,7 @@ export interface FileRouteTypes {
     | '/admin/signup'
     | '/officer/dashboard'
     | '/officer/resolution'
+    | '/officer/activate'
     | '/officer/invite'
     | '/officer/login'
     | '/admin'
@@ -521,6 +532,7 @@ export interface FileRouteTypes {
     | '/admin_/signup'
     | '/officer/dashboard'
     | '/officer/resolution'
+    | '/officer_/activate'
     | '/officer_/invite'
     | '/officer_/login'
     | '/admin/'
@@ -551,6 +563,7 @@ export interface RootRouteChildren {
   AdminForgotPasswordRoute: typeof AdminForgotPasswordRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminSignupRoute: typeof AdminSignupRoute
+  OfficerActivateRoute: typeof OfficerActivateRoute
   OfficerInviteRoute: typeof OfficerInviteRoute
   OfficerLoginRoute: typeof OfficerLoginRoute
 }
@@ -674,6 +687,13 @@ declare module '@tanstack/react-router' {
       path: '/officer/invite'
       fullPath: '/officer/invite'
       preLoaderRoute: typeof OfficerInviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/officer_/activate': {
+      id: '/officer_/activate'
+      path: '/officer/activate'
+      fullPath: '/officer/activate'
+      preLoaderRoute: typeof OfficerActivateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/officer/resolution': {
@@ -953,6 +973,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminForgotPasswordRoute: AdminForgotPasswordRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminSignupRoute: AdminSignupRoute,
+  OfficerActivateRoute: OfficerActivateRoute,
   OfficerInviteRoute: OfficerInviteRoute,
   OfficerLoginRoute: OfficerLoginRoute,
 }
