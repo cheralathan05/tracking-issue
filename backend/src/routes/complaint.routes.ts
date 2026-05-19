@@ -22,9 +22,9 @@ import {
 export const complaintRouter = Router();
 
 complaintRouter.post("/", validateBody(complaintSubmissionSchema), submitComplaint);
-complaintRouter.get("/summary", getComplaintDashboard);
-complaintRouter.get("/", getComplaints);
-complaintRouter.get("/:id", getComplaint);
+complaintRouter.get("/summary", requireAuth, getComplaintDashboard);
+complaintRouter.get("/", requireAuth, getComplaints);
+complaintRouter.get("/:id", requireAuth, getComplaint);
 complaintRouter.get("/:id/messages", requireAuth, getComplaintMessages);
 complaintRouter.post("/:id/messages", requireAuth, validateBody(complaintMessageSchema), postComplaintMessage);
 complaintRouter.patch(

@@ -84,18 +84,18 @@ function RegisterPage() {
 
       const response = await registerCitizen(parsedForm.data);
 
-      // In development the API returns the OTP for convenience — include it in the
-      // verify page search params so developers can quickly proceed.
-      const search: Record<string, string> = {
-        email: parsedForm.data.email,
-        purpose: "registration",
-      };
-
-      if ((response as any).otp) {
-        search.otp = (response as any).otp;
+      if (response.data?.token) {
+        await navigate({ to: "/dashboard" });
+        return response;
       }
 
-      await navigate({ to: "/verify-otp", search });
+      await navigate({
+        to: "/verify-otp",
+        search: {
+          email: parsedForm.data.email,
+          purpose: "registration",
+        },
+      });
       return response;
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to register");
@@ -163,6 +163,7 @@ function RegisterPage() {
               <Label htmlFor="aad">Aadhaar</Label>
               <Input
                 id="aad"
+                required
                 value={form.aadhaar}
                 onChange={(event) => setForm({ ...form, aadhaar: event.target.value })}
                 placeholder="XXXX-XXXX-XXXX"

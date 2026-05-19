@@ -70,6 +70,10 @@ export async function register(req: Request, res: Response) {
     userAgent: req.get("user-agent") ?? undefined,
   });
 
+  if ("accessToken" in result && result.accessToken && result.refreshToken) {
+    setAuthCookies(res, result.accessToken, result.refreshToken);
+  }
+
   res.status(201).json({
     success: true,
     message: result.message,

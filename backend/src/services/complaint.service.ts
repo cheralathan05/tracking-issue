@@ -19,6 +19,10 @@ import {
 
 const adminRoles = new Set(["super_admin", "state_admin", "district_officer", "department_officer", "admin", "officer"]);
 
+function isPrivilegedRole(role: string) {
+  return adminRoles.has(role);
+}
+
 type AuthMeta = {
   ipAddress?: string;
   userAgent?: string;
@@ -95,15 +99,15 @@ function assertMessageAccess(
   complaint: NonNullable<Awaited<ReturnType<typeof findComplaintRecord>>>,
   viewer: { id: string; role: string },
 ) {
-  if (adminRoles.has(viewer.role)) {
+  if (isPrivilegedRole(viewer.role) && viewer.role !== "officer") {
+    return;
+  }
+
+  if (viewer.role === "officer" && complaint.assignedOfficerId === viewer.id) {
     return;
   }
 
   if (complaint.reporterUserId && complaint.reporterUserId === viewer.id) {
-    return;
-  }
-
-  if (complaint.assignedOfficerId && complaint.assignedOfficerId === viewer.id) {
     return;
   }
 
@@ -182,20 +186,35 @@ export async function createComplaint(input: ComplaintSubmissionInput, reporterU
 
 export async function listComplaints(
   query: ComplaintQueryInput,
-  viewer?: { id: string; role: string },
+  viewer: { id: string; role: string },
 ) {
   const where: Prisma.ComplaintWhereInput = {};
+  const role = viewer.role;
+
+  if (!isPrivilegedRole(role)) {
+    where.reporterUserId = viewer.id;
+  } else if (role === "officer") {
+    where.assignedOfficerId = viewer.id;
+  }
 
   if (query.status) {
     where.status = query.status;
   }
 
-  if (query.view === "mine" && viewer) {
+  if (query.view === "mine") {
     where.reporterUserId = viewer.id;
   }
 
-  if (query.view === "assigned" && viewer) {
+  if (query.view === "assigned") {
     where.assignedOfficerId = viewer.id;
+  }
+
+  if (!isPrivilegedRole(role) && query.view === "assigned") {
+    throw new AppError("Forbidden", 403);
+  }
+
+  if (role === "officer" && query.view === "all") {
+    throw new AppError("Forbidden", 403);
   }
 
   if (query.search) {
@@ -231,15 +250,21 @@ export async function listComplaints(
   };
 }
 
-async function findComplaint(identifier: string) {
-  return findComplaintRecord(identifier);
-}
-
-export async function getComplaintDetails(identifier: string) {
-  const complaint = await findComplaint(identifier);
+export async function getComplaintDetails(identifier: string, viewer: { id: string; role: string }) {
+  const complaint = await findComplaintRecord(identifier);
 
   if (!complaint) {
     throw new AppError("Complaint not found", 404);
+  }
+
+  if (!isPrivilegedRole(viewer.role)) {
+    if (complaint.reporterUserId !== viewer.id) {
+      throw new AppError("Forbidden", 403);
+    }
+  } else if (viewer.role === "officer") {
+    if (complaint.assignedOfficerId !== viewer.id) {
+      throw new AppError("Forbidden", 403);
+    }
   }
 
   return {
@@ -444,13 +469,21 @@ export async function updateComplaintStatus(
   };
 }
 
-export async function getComplaintSummary() {
+export async function getComplaintSummary(viewer: { id: string; role: string }) {
+  const baseWhere: Prisma.ComplaintWhereInput = {};
+
+  if (!isPrivilegedRole(viewer.role)) {
+    baseWhere.reporterUserId = viewer.id;
+  } else if (viewer.role === "officer") {
+    baseWhere.assignedOfficerId = viewer.id;
+  }
+
   const [submitted, assigned, inProgress, resolved, escalated] = await Promise.all([
-    prisma.complaint.count({ where: { status: "Submitted" } }),
-    prisma.complaint.count({ where: { status: "Assigned" } }),
-    prisma.complaint.count({ where: { status: "In Progress" } }),
-    prisma.complaint.count({ where: { status: "Resolved" } }),
-    prisma.complaint.count({ where: { status: "Escalated" } }),
+    prisma.complaint.count({ where: { ...baseWhere, status: "Submitted" } }),
+    prisma.complaint.count({ where: { ...baseWhere, status: "Assigned" } }),
+    prisma.complaint.count({ where: { ...baseWhere, status: "In Progress" } }),
+    prisma.complaint.count({ where: { ...baseWhere, status: "Resolved" } }),
+    prisma.complaint.count({ where: { ...baseWhere, status: "Escalated" } }),
   ]);
 
   return {

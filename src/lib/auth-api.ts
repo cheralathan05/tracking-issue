@@ -211,9 +211,15 @@ export function registerCitizen(payload: {
   password: string;
   confirmPassword: string;
 }) {
-  return request("/auth/register", {
+  return request<{ token?: string; user?: AuthUser }>("/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
+  }).then((response) => {
+    if (response.data?.token) {
+      setStoredTokens(response.data.token);
+    }
+
+    return response;
   });
 }
 

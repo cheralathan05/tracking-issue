@@ -1,4 +1,5 @@
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getProfile, logout, type AuthUser } from "@/lib/auth-api";
 
 const nav = [
   { to: "/admin/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -31,7 +33,28 @@ const nav = [
 ] as const;
 
 export function AdminLayout() {
+  const [profile, setProfile] = useState<AuthUser | null>(null);
   const path = useRouterState({ select: (s) => s.location.pathname });
+
+  useEffect(() => {
+    let mounted = true;
+
+    getProfile()
+      .then((result) => {
+        if (mounted && result.data?.user) {
+          setProfile(result.data.user);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setProfile(null);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-secondary/30">
@@ -73,6 +96,9 @@ export function AdminLayout() {
           <div className="border-t border-sidebar-border p-3">
             <Link
               to="/admin/login"
+              onClick={() => {
+                void logout();
+              }}
               className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
             >
               <LogOut className="h-4 w-4" /> Sign out
@@ -96,11 +122,11 @@ export function AdminLayout() {
               </Button>
               <div className="flex items-center gap-2 rounded-full border border-border bg-card px-2 py-1 pr-3">
                 <div className="grid h-7 w-7 place-items-center rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
-                  SA
+                  {(profile?.fullName?.trim().charAt(0) ?? "A").toUpperCase()}
                 </div>
                 <div className="hidden sm:block leading-tight">
-                  <div className="text-xs font-semibold">Supervisor Admin</div>
-                  <div className="text-[10px] text-muted-foreground">Govt. of India</div>
+                  <div className="text-xs font-semibold">{profile?.fullName ?? "Administrator"}</div>
+                  <div className="text-[10px] text-muted-foreground">{profile?.email ?? "Government account"}</div>
                 </div>
               </div>
             </div>

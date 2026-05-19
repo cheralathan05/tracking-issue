@@ -23,14 +23,17 @@ export async function submitComplaint(req: Request, res: Response) {
 
 export async function getComplaints(req: Request, res: Response) {
   const query = complaintQuerySchema.parse(req.query);
-  const result = await listComplaints(query, req.user ? { id: req.user.id, role: String(req.user.role) } : undefined);
+  const result = await listComplaints(query, { id: req.user!.id, role: String(req.user!.role) });
 
   res.status(200).json({ success: true, message: "Complaints fetched successfully", data: result });
 }
 
 export async function getComplaint(req: Request, res: Response) {
   const id = Array.isArray(req.params.id) ? req.params.id[0] ?? "" : req.params.id;
-  const result = await getComplaintDetails(id);
+  const result = await getComplaintDetails(id, {
+    id: req.user!.id,
+    role: String(req.user!.role),
+  });
   res.status(200).json({ success: true, message: "Complaint fetched successfully", data: result });
 }
 
@@ -90,6 +93,9 @@ export async function updateComplaintProgress(req: Request, res: Response) {
 }
 
 export async function getComplaintDashboard(req: Request, res: Response) {
-  const result = await getComplaintSummary();
+  const result = await getComplaintSummary({
+    id: req.user!.id,
+    role: String(req.user!.role),
+  });
   res.status(200).json({ success: true, message: "Complaint summary fetched successfully", data: result });
 }

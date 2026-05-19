@@ -274,20 +274,19 @@ export async function registerCitizen(input: RegisterInput, meta?: AuthMeta) {
       address: input.address,
       password,
       role: "citizen",
-      isVerified: false,
-      emailVerified: false,
+      isVerified: true,
+      emailVerified: true,
     },
     select: publicUserSelect,
   });
 
-  const otp = await registerVerificationOtp(email);
   await writeAuditLog("citizen_registered", user.id, { email }, meta);
 
+  const session = await issueSession(user.id, false, meta);
+
   return {
-    message: "Registration successful. Verify your email using the OTP sent to your inbox.",
-    user,
-    emailVerificationRequired: true,
-    otp: env.NODE_ENV === "development" ? otp : undefined,
+    message: "Registration successful. You are now signed in.",
+    ...session,
   };
 }
 
