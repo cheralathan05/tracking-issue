@@ -63,6 +63,10 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
       throw new AppError("Unauthorized access", 401);
     }
 
+    if (!user.isVerified || !user.emailVerified) {
+      throw new AppError("Please verify your email before login", 403);
+    }
+
     req.user = user;
     req.tokenPayload = payload;
     next();

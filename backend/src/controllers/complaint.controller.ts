@@ -13,7 +13,7 @@ import {
 } from "../services/complaint.service.js";
 
 export async function submitComplaint(req: Request, res: Response) {
-  const result = await createComplaint(req.body, req.user?.id, {
+  const result = await createComplaint(req.body, req.user!.id, {
     ipAddress: req.ip,
     userAgent: req.get("user-agent") ?? undefined,
   });

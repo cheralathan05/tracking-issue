@@ -274,19 +274,20 @@ export async function registerCitizen(input: RegisterInput, meta?: AuthMeta) {
       address: input.address,
       password,
       role: "citizen",
-      isVerified: true,
-      emailVerified: true,
+      isVerified: false,
+      emailVerified: false,
     },
     select: publicUserSelect,
   });
 
   await writeAuditLog("citizen_registered", user.id, { email }, meta);
-
-  const session = await issueSession(user.id, false, meta);
+  const otp = await registerVerificationOtp(email);
 
   return {
-    message: "Registration successful. You are now signed in.",
-    ...session,
+    message: "Registration successful. Please verify your email to activate your account.",
+    user,
+    emailVerificationRequired: true,
+    otp: env.NODE_ENV === "development" ? otp : undefined,
   };
 }
 
@@ -398,8 +399,8 @@ export async function loginCitizen(input: LoginInput, meta?: AuthMeta) {
     throw new AppError("Invalid password", 401);
   }
 
-  if (!user.emailVerified) {
-    throw new AppError("Email verification required", 403);
+  if (!user.isVerified || !user.emailVerified) {
+    throw new AppError("Please verify your email before login", 403);
   }
 
   await resetLoginAttempts(user.id);
@@ -491,6 +492,10 @@ export async function refreshAuthSession(refreshToken: string, meta?: AuthMeta) 
     throw new AppError("Unauthorized access", 401);
   }
 
+  if (!user.isVerified || !user.emailVerified) {
+    throw new AppError("Please verify your email before login", 403);
+  }
+
   const rotated = await issueSession(user.id, Boolean(payload.rememberMe), meta);
   await prisma.refreshToken.update({
     where: { jti: payload.jti },
@@ -559,14 +564,12 @@ export async function verifyOtpFlow(input: VerifyOtpInput, meta?: AuthMeta) {
       select: { id: true },
     });
 
+    await clearOtpRecords(email, "registration");
     await writeAuditLog("email_verified", user.id, { email, purpose: input.purpose }, meta);
-
-    // Issue a session so the user is logged in immediately after verifying their email.
-    const session = await issueSession(user.id, false, meta);
 
     return {
       message: "Email verified successfully",
-      ...session,
+      user,
     };
   }
 

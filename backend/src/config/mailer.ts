@@ -29,3 +29,8 @@ export const transporter = hasSmtpConfig
         buffer: true,
         newline: "unix",
       });
+
+// Log SMTP configuration at startup to help diagnose email delivery issues
+console.info(
+  `[mailer] hasSmtpConfig=${hasSmtpConfig} host=${env.SMTP_HOST ?? "(none)"} port=${env.SMTP_PORT ?? "(none)"} from=${env.SMTP_FROM}`,
+);

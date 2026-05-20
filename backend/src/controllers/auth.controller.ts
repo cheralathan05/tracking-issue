@@ -70,10 +70,6 @@ export async function register(req: Request, res: Response) {
     userAgent: req.get("user-agent") ?? undefined,
   });
 
-  if ("accessToken" in result && result.accessToken && result.refreshToken) {
-    setAuthCookies(res, result.accessToken, result.refreshToken);
-  }
-
   res.status(201).json({
     success: true,
     message: result.message,
@@ -105,7 +101,7 @@ export async function login(req: Request, res: Response) {
   res.status(200).json({
     success: true,
     message: result.message,
-    data: { token: result.accessToken, user: result.user },
+    data: { user: result.user },
   });
 }
 
@@ -140,7 +136,7 @@ export async function refreshToken(req: Request, res: Response) {
   res.status(200).json({
     success: true,
     message: result.message,
-    data: { token: result.accessToken, user: result.user },
+    data: { user: result.user },
   });
 }
 
@@ -188,14 +184,15 @@ export async function verifyOtp(req: Request, res: Response) {
     res.status(200).json({
       success: true,
       message: result.message,
-      data: { token: result.accessToken, user: result.user },
+      data: { user: result.user },
     });
     return;
   }
 
   res.status(200).json({
     success: true,
-    ...result,
+    message: result.message,
+    data: { user: result.user },
   });
 }
 

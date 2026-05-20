@@ -21,7 +21,7 @@ import {
 
 export const complaintRouter = Router();
 
-complaintRouter.post("/", validateBody(complaintSubmissionSchema), submitComplaint);
+complaintRouter.post("/", requireAuth, validateBody(complaintSubmissionSchema), submitComplaint);
 complaintRouter.get("/summary", requireAuth, getComplaintDashboard);
 complaintRouter.get("/", requireAuth, getComplaints);
 complaintRouter.get("/:id", requireAuth, getComplaint);
