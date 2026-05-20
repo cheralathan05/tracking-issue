@@ -303,23 +303,24 @@ export async function acceptOfficerInvitation(
 
   const password = await hashPassword(input.password);
   const officerCode = await ensureUniqueOfficerCode();
-  const existingUsername = await prisma.user.findUnique({ where: { username } });
-  const existingEmail = await prisma.user.findUnique({ where: { email: invitation.email } });
+
+  // Check for existing username or email in users table
+  const [existingUsername, existingEmail] = await Promise.all([
+    prisma.user.findUnique({ where: { username } }),
+    prisma.user.findUnique({ where: { email: invitation.email } }),
+  ]);
 
   if (existingUsername) {
     throw new AppError("Username already exists", 409);
   }
 
-  // If email exists, check if it's an unverified/incomplete account that can be replaced
   if (existingEmail) {
-    // Only allow replacement if the existing account is unverified and not an officer
-    if (existingEmail.isVerified || (existingEmail.role && existingEmail.role !== "citizen")) {
-      throw new AppError("An account already exists for this email", 409);
-    }
-    // Delete the unverified account so we can create the officer account
-    await prisma.user.delete({ where: { id: existingEmail.id } });
+    // Email already exists - reject the activation
+    // This user should NOT have been created during invitation
+    throw new AppError("An account already exists for this email. Please contact administrator.", 409);
   }
 
+  // Create officer user - THIS IS THE ONLY PLACE WHERE OFFICER USERS ARE CREATED
   let user;
   try {
     user = await prisma.user.create({
@@ -344,11 +345,12 @@ export async function acceptOfficerInvitation(
     });
   } catch (err: any) {
     if (err?.code === "P2002") {
-      throw new AppError("Username or email already exists", 409);
+      throw new AppError("Username or email already exists. Please contact administrator.", 409);
     }
     throw err;
   }
 
+  // Mark invitation as accepted
   await prisma.officerInvitation.update({
     where: { code: invitation.code },
     data: {
@@ -358,6 +360,7 @@ export async function acceptOfficerInvitation(
     },
   });
 
+  // Log the activation action
   await prisma.auditLog.create({
     data: {
       action: "officer_invitation_accepted",
