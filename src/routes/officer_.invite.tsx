@@ -30,9 +30,7 @@ export function OfficerInviteAccept() {
     department: string;
     area: string;
     code: string;
-    username?: string | null;
   } | null>(null);
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +46,6 @@ export function OfficerInviteAccept() {
       .then((result) => {
         if (mounted) {
           setInvite(result.invitation);
-          setUsername(result.invitation.username ?? "");
         }
       })
       .catch((fetchError) => {
@@ -79,7 +76,6 @@ export function OfficerInviteAccept() {
 
     try {
       await acceptOfficerInvitation(search.token, {
-        username: invite?.username ? undefined : username,
         password,
         confirmPassword,
       });
@@ -120,7 +116,7 @@ export function OfficerInviteAccept() {
             {invite ? (
               <>
                 You were invited as a <strong>{invite.department}</strong> officer for <strong>{invite.area}</strong>.
-                Set your username and password to complete activation.
+                Set your password to complete activation.
               </>
             ) : (
               "Open the invite link sent by admin to activate your officer account."
@@ -143,17 +139,6 @@ export function OfficerInviteAccept() {
             <div className="space-y-1.5">
               <Label htmlFor="area">Assigned area</Label>
               <Input id="area" value={invite?.area ?? ""} readOnly />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="username">Choose username</Label>
-              <Input
-                id="username"
-                value={invite?.username ?? username}
-                onChange={(event) => setUsername(event.target.value)}
-                required={!invite?.username}
-                readOnly={Boolean(invite?.username)}
-                placeholder={invite?.username ? "Username already fixed by admin" : "r.kumar"}
-              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="code">Invite code</Label>

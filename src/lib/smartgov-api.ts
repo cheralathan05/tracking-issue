@@ -341,7 +341,6 @@ export function getOfficerInvitation(token: string) {
 export function acceptOfficerInvitation(
   token: string,
   payload: {
-    username?: string;
     password: string;
     confirmPassword: string;
   },

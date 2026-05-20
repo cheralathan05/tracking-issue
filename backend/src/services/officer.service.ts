@@ -295,15 +295,10 @@ export async function acceptOfficerInvitation(
     throw new AppError("Invitation is no longer active", 409);
   }
 
-  const requestedUsername = input.username?.trim();
-  const username = invitation.username ?? requestedUsername;
+  const username = invitation.username?.trim();
 
   if (!username) {
-    throw new AppError("Username is required for account activation", 400);
-  }
-
-  if (invitation.username && requestedUsername && requestedUsername !== invitation.username) {
-    throw new AppError("Username is already fixed by admin", 409);
+    throw new AppError("Invitation is missing a username", 400);
   }
 
   const password = await hashPassword(input.password);

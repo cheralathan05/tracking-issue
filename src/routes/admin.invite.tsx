@@ -41,7 +41,7 @@ function InviteOfficerPage() {
         mobile,
         department,
         area,
-        username: username.trim() || undefined,
+        username: username.trim(),
       });
 
       setInviteUrl(result.invitation.invitationUrl ?? null);
@@ -167,6 +167,7 @@ function InviteOfficerPage() {
               id="username"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
+              required
               placeholder="ramesh_sgm"
             />
           </div>
