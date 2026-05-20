@@ -43,7 +43,7 @@ function AdminSignupPage() {
         confirmPassword,
       });
       await navigate({
-        to: `/verify-otp?email=${encodeURIComponent(email)}&purpose=registration&returnTo=/admin/login` as never,
+        to: `/verify-otp?email=${encodeURIComponent(email)}&purpose=registration&returnTo=/admin/dashboard` as never,
       });
     } catch (submitError) {
       setError(

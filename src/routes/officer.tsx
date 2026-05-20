@@ -4,9 +4,9 @@ import { ensureAuthSession } from "@/lib/auth-api";
 
 export const Route = createFileRoute("/officer")({
 	beforeLoad: async ({ location }) => {
-		const token = await ensureAuthSession();
+		const session = await ensureAuthSession();
 
-		if (!token) {
+		if (!session) {
 			throw redirect({
 				to: "/officer/login",
 				search: { returnTo: location.pathname },

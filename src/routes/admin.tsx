@@ -13,9 +13,9 @@ const adminRoles = new Set([
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
-    const token = await ensureAuthSession();
+    const session = await ensureAuthSession();
 
-    if (!token) {
+    if (!session) {
       throw redirect({
         to: "/admin/login",
         search: { returnTo: location.pathname },

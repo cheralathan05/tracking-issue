@@ -84,16 +84,12 @@ function RegisterPage() {
 
       const response = await registerCitizen(parsedForm.data);
 
-      if (response.data?.token) {
-        await navigate({ to: "/dashboard" });
-        return response;
-      }
-
       await navigate({
         to: "/verify-otp",
         search: {
           email: parsedForm.data.email,
           purpose: "registration",
+          returnTo: "/dashboard",
         },
       });
       return response;

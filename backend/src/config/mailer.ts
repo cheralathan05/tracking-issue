@@ -6,6 +6,12 @@ export const hasSmtpConfig = Boolean(
   env.SMTP_HOST && env.SMTP_PORT && env.SMTP_USER && env.SMTP_PASS,
 );
 
+const transportType = hasSmtpConfig
+  ? "smtp"
+  : env.EMAIL_USER && env.EMAIL_PASS
+    ? "gmail"
+    : "fallback";
+
 export const transporter = hasSmtpConfig
   ? nodemailer.createTransport({
       host: env.SMTP_HOST,
@@ -30,7 +36,13 @@ export const transporter = hasSmtpConfig
         newline: "unix",
       });
 
+if (transportType === "fallback") {
+  console.warn(
+    "[mailer] no SMTP or Gmail credentials configured. Email will not be delivered unless SMTP_HOST/SMTP_USER/SMTP_PASS or EMAIL_USER/EMAIL_PASS are set.",
+  );
+}
+
 // Log SMTP configuration at startup to help diagnose email delivery issues
 console.info(
-  `[mailer] hasSmtpConfig=${hasSmtpConfig} host=${env.SMTP_HOST ?? "(none)"} port=${env.SMTP_PORT ?? "(none)"} from=${env.SMTP_FROM}`,
+  `[mailer] transport=${transportType} hasSmtpConfig=${hasSmtpConfig} host=${env.SMTP_HOST ?? "(none)"} port=${env.SMTP_PORT ?? "(none)"} from=${env.SMTP_FROM}`,
 );

@@ -62,6 +62,45 @@ function normalizeOrigin(origin: string) {
   return origin.replace(/\/$/, "");
 }
 
+async function generateOfficerUsername(preferredUsername: string | undefined, email: string, fullName: string) {
+  const normalize = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "")
+      .slice(0, 30);
+
+  if (preferredUsername) {
+    const normalizedUsername = normalize(preferredUsername);
+    if (normalizedUsername.length >= 3) {
+      const existing = await prisma.user.findUnique({ where: { username: normalizedUsername } });
+      if (!existing) {
+        return normalizedUsername;
+      }
+      throw new AppError("Username already exists", 409);
+    }
+  }
+
+  const baseCandidates = [email.split("@")[0], fullName]
+    .map((value) => normalize(value))
+    .filter(Boolean) as string[];
+
+  let candidate = baseCandidates[0] ?? `officer${Date.now()}`;
+  let suffix = 0;
+
+  while (true) {
+    const usernameCandidate = suffix === 0 ? candidate : `${candidate}${suffix}`;
+    const existing = await prisma.user.findUnique({ where: { username: usernameCandidate } });
+    if (!existing) {
+      return usernameCandidate;
+    }
+    suffix += 1;
+    if (suffix > 1000) {
+      candidate = `${candidate}${crypto.randomInt(1000, 9999)}`;
+      suffix = 0;
+    }
+  }
+}
+
 function resolveFrontendOrigin(requestOrigin?: string) {
   const configuredOrigins = env.FRONTEND_ORIGIN.split(",")
     .map((value) => value.trim())
@@ -147,11 +186,18 @@ export async function createOfficerInvitation(
   creatorUserId?: string,
   meta?: AuthMeta,
 ) {
-  // Prevent inviting an email that already has an account
-  const existingUser = await prisma.user.findUnique({ where: { email: input.email } });
+  // Prevent inviting an email or mobile that already has an account
+  const [existingEmailUser, existingMobileUser] = await Promise.all([
+    prisma.user.findUnique({ where: { email: input.email } }),
+    prisma.user.findUnique({ where: { mobile: input.mobile } }),
+  ]);
 
-  if (existingUser) {
+  if (existingEmailUser) {
     throw new AppError("Officer already exists", 409);
+  }
+
+  if (existingMobileUser) {
+    throw new AppError("A user with this mobile number already exists", 409);
   }
 
   if (input.username) {
@@ -295,29 +341,24 @@ export async function acceptOfficerInvitation(
     throw new AppError("Invitation is no longer active", 409);
   }
 
-  const username = invitation.username?.trim();
-
-  if (!username) {
-    throw new AppError("Invitation is missing a username", 400);
-  }
-
   const password = await hashPassword(input.password);
   const officerCode = await ensureUniqueOfficerCode();
+  const username = await generateOfficerUsername(input.username?.trim() || invitation.username?.trim(), invitation.email, invitation.fullName);
 
-  // Check for existing username or email in users table
-  const [existingUsername, existingEmail] = await Promise.all([
-    prisma.user.findUnique({ where: { username } }),
+  // Check for existing email or mobile in users table
+  const [existingEmail, existingMobile] = await Promise.all([
     prisma.user.findUnique({ where: { email: invitation.email } }),
+    prisma.user.findUnique({ where: { mobile: invitation.mobile } }),
   ]);
-
-  if (existingUsername) {
-    throw new AppError("Username already exists", 409);
-  }
 
   if (existingEmail) {
     // Email already exists - reject the activation
     // This user should NOT have been created during invitation
     throw new AppError("An account already exists for this email. Please contact administrator.", 409);
+  }
+
+  if (existingMobile) {
+    throw new AppError("A user with this mobile number already exists. Please contact administrator.", 409);
   }
 
   // Create officer user - THIS IS THE ONLY PLACE WHERE OFFICER USERS ARE CREATED

@@ -10,6 +10,8 @@ import { loginCitizen } from "@/lib/auth-api";
 
 const loginSearchSchema = z.object({
   returnTo: z.string().optional(),
+  email: z.string().optional(),
+  verified: z.string().optional(),
 });
 
 export const Route = createFileRoute("/login")({
@@ -28,7 +30,7 @@ function LoginPage() {
   const search = Route.useSearch();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [identifier, setIdentifier] = useState("");
+  const [identifier, setIdentifier] = useState(search.email ?? "");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
 
@@ -50,11 +52,42 @@ function LoginPage() {
               : "/admin/dashboard";
       await navigate({ to: destination as never });
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to sign in");
+      const error = submitError instanceof Error ? submitError : new Error("Unable to sign in");
+      const payload = (error as Error & { payload?: unknown }).payload as
+        | { errors?: { email?: string; emailVerificationRequired?: boolean } }
+        | undefined;
+
+      if (payload?.errors?.emailVerificationRequired && payload.errors.email) {
+        await navigate({
+          to: "/verify-otp",
+          search: {
+            email: payload.errors.email,
+            purpose: "registration",
+            returnTo: "/dashboard",
+          },
+        });
+        return;
+      }
+
+      if (/verify your email/i.test(error.message)) {
+        await navigate({
+          to: "/verify-otp",
+          search: {
+            email: identifier,
+            purpose: "registration",
+            returnTo: "/dashboard",
+          },
+        });
+        return;
+      }
+
+      setError(error.message);
     } finally {
       setLoading(false);
     }
   };
+
+  const verifiedNotice = search.verified === "1";
 
   return (
     <div className="grid min-h-screen md:grid-cols-2">
@@ -89,6 +122,12 @@ function LoginPage() {
             <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
             <p className="text-sm text-muted-foreground">Sign in to your citizen account.</p>
           </div>
+
+          {verifiedNotice ? (
+            <div className="rounded-lg border border-success/20 bg-success/10 p-3 text-sm text-success-foreground">
+              Email verified successfully. You can now sign in.
+            </div>
+          ) : null}
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-1.5">

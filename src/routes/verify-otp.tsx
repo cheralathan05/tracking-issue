@@ -28,6 +28,7 @@ function VerifyOtpPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isPasswordReset = purpose === "password_reset";
+  const isEmailLocked = Boolean(search.email);
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -35,32 +36,16 @@ function VerifyOtpPage() {
     setError(null);
 
     try {
-      const response = await verifyOtp(email, otp, purpose);
-
-      // If the server returned session tokens, assume the user is logged in and
-      // redirect to the appropriate dashboard.
-      const token = response.data?.token;
-      const user = (response.data as any)?.user;
-
-      if (token && user) {
-        const role = user.role ?? "citizen";
-        const destination =
-          purpose === "admin_login" && search.returnTo?.startsWith("/")
-            ? search.returnTo
-            : role === "citizen"
-              ? "/dashboard"
-              : role === "officer"
-                ? "/officer/dashboard"
-                : "/admin/dashboard";
-
-        await navigate({ to: destination as never });
-        return;
-      }
+      await verifyOtp(email, otp, purpose);
 
       if (purpose === "password_reset") {
         await navigate({ to: "/reset-password", search: { email, returnTo: search.returnTo } });
       } else if (purpose === "admin_login") {
         await navigate({ to: search.returnTo ?? "/admin/dashboard" });
+      } else if (purpose === "registration") {
+        await navigate({
+          to: search.returnTo ?? "/dashboard",
+        });
       } else if (search.returnTo) {
         await navigate({ to: search.returnTo });
       } else {
@@ -111,14 +96,16 @@ function VerifyOtpPage() {
             <p className="text-sm text-muted-foreground">
               {isPasswordReset
                 ? "Enter the 6-digit code we sent to your email. After verification, you can choose a new password."
-                : "Enter the OTP sent to your email to continue."}
+                : purpose === "registration"
+                  ? "Enter the OTP sent to your email. Your account will be activated after verification."
+                  : "Enter the OTP sent to your email to continue."}
             </p>
           </div>
 
           <div className="rounded-lg border border-border bg-secondary/50 p-3 text-xs text-muted-foreground">
             <p>
-              <strong>Next step:</strong> verify the code, then you’ll move to the password change
-              screen.
+              <strong>Next step:</strong> verify the code, then continue to the next step for this
+              flow.
             </p>
           </div>
 
@@ -133,6 +120,7 @@ function VerifyOtpPage() {
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="smartgov.admin@gmail.com"
                 className="pl-9"
+                readOnly={isEmailLocked}
                 required
               />
             </div>
@@ -183,7 +171,11 @@ function VerifyOtpPage() {
 
           <div className="text-sm text-muted-foreground">
             Wrong email?{" "}
-            <Link to="/forgot-password" className="font-medium text-primary hover:underline">
+            <Link
+              to="/forgot-password"
+              search={email ? { email } : undefined}
+              className="font-medium text-primary hover:underline"
+            >
               go back and resend the code
             </Link>
             .

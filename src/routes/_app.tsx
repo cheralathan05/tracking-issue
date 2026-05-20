@@ -4,9 +4,9 @@ import { ensureAuthSession, getProfile } from "@/lib/auth-api";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async ({ location }) => {
-    const token = await ensureAuthSession();
+    const session = await ensureAuthSession();
 
-    if (!token) {
+    if (!session) {
       throw redirect({
         to: "/login",
         search: { returnTo: location.pathname },

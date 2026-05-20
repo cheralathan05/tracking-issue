@@ -1,19 +1,26 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Mail, ShieldCheck } from "lucide-react";
 import { useState } from "react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { forgotPassword } from "@/lib/auth-api";
 
+const forgotPasswordSearchSchema = z.object({
+  email: z.string().optional(),
+});
+
 export const Route = createFileRoute("/forgot-password")({
+  validateSearch: forgotPasswordSearchSchema,
   head: () => ({ meta: [{ title: "Forgot password — SmartGov" }] }),
   component: ForgotPasswordPage,
 });
 
 function ForgotPasswordPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const search = Route.useSearch();
+  const [email, setEmail] = useState(search.email ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

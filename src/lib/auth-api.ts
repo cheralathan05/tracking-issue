@@ -1,6 +1,4 @@
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() || "/api";
-const TOKEN_STORAGE_KEY = "smartgov_access_token";
-const REFRESH_TOKEN_STORAGE_KEY = "smartgov_refresh_token";
 
 function buildUrl(path: string) {
   const normalizedBase = API_BASE_URL.replace(/\/$/, "");
@@ -8,85 +6,28 @@ function buildUrl(path: string) {
   return `${normalizedBase}${normalizedPath}`;
 }
 
-export function getStoredToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_STORAGE_KEY);
-}
-
-export function getStoredRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
-}
-
-export function setStoredTokens(accessToken: string, refreshToken?: string): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(TOKEN_STORAGE_KEY, accessToken);
-  if (refreshToken) {
-    localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
-  }
-}
-
-export function clearStoredTokens(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(TOKEN_STORAGE_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
-}
-
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const payloadPart = token.split(".")[1];
-
-  if (!payloadPart) {
-    return null;
-  }
-
-  try {
-    const normalizedPayload = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
-    const padding = "=".repeat((4 - (normalizedPayload.length % 4)) % 4);
-    const decoded = window.atob(`${normalizedPayload}${padding}`);
-    return JSON.parse(decoded) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
-function isStoredAccessTokenExpired(token: string): boolean {
-  const payload = decodeJwtPayload(token);
-  const expiresAt = typeof payload?.exp === "number" ? payload.exp * 1000 : null;
-
-  if (!expiresAt) {
-    return true;
-  }
-
-  return expiresAt <= Date.now() + 30_000;
-}
-
 export async function ensureAuthSession(): Promise<string | null> {
   if (typeof window === "undefined") {
     return null;
   }
 
-  const storedToken = getStoredToken();
-
-  if (storedToken && !isStoredAccessTokenExpired(storedToken)) {
-    return storedToken;
-  }
-
   try {
-    const response = await request<{ token: string; user: { role: string; email: string; fullName: string } }>(
-      "/auth/refresh-token",
-      { method: "POST" },
-    );
+    const profile = await getProfile();
 
-    if (response.data?.token) {
-      setStoredTokens(response.data.token);
-      return response.data.token;
+    if (profile.data?.user) {
+      return "session";
     }
   } catch {
-    clearStoredTokens();
+    try {
+      await request("/auth/refresh-token", { method: "POST" });
+      const profile = await getProfile();
+
+      if (profile.data?.user) {
+        return "session";
+      }
+    } catch {
+      return null;
+    }
   }
 
   return null;
@@ -130,6 +71,14 @@ function formatValidationErrors(errors: NonNullable<ApiResponse<unknown>["errors
   return uniqueMessages.join("; ");
 }
 
+function isValidationErrorPayload(errors: unknown): errors is NonNullable<ApiResponse<unknown>["errors"]> {
+  return (
+    typeof errors === "object" &&
+    errors !== null &&
+    Object.values(errors).every((value) => value === undefined || Array.isArray(value))
+  );
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<ApiResponse<T>> {
   let response: Response;
 
@@ -151,33 +100,35 @@ async function request<T>(path: string, init?: RequestInit): Promise<ApiResponse
   const payload = (await response.json().catch(() => null)) as ApiResponse<T> | null;
 
   if (!response.ok) {
-    const validationDetails = payload?.errors ? formatValidationErrors(payload.errors) : null;
     const message = payload?.message ?? "Request failed";
+    const error = new Error(message) as Error & { payload?: ApiResponse<T> | null };
+    error.payload = payload;
 
-    throw new Error(validationDetails ? `${message}: ${validationDetails}` : message);
+    if (payload?.errors && isValidationErrorPayload(payload.errors)) {
+      const validationDetails = formatValidationErrors(payload.errors);
+      if (validationDetails) {
+        error.message = `${message}: ${validationDetails}`;
+      }
+    }
+
+    throw error;
   }
 
   return payload ?? { success: true, message: "OK" };
 }
 
 export function loginCitizen(identifier: string, password: string, rememberMe = false) {
-  return request<{ token: string; user: { role: string; email: string; fullName: string } }>(
+  return request<{ user: { role: string; email: string; fullName: string } }>(
     "/auth/login",
     {
       method: "POST",
       body: JSON.stringify({ identifier, password, rememberMe }),
     },
-  ).then((response) => {
-    if (response.data?.token) {
-      setStoredTokens(response.data.token);
-    }
-
-    return response;
-  });
+  );
 }
 
 export function loginAdmin(email: string, password: string, rememberMe = true) {
-  return request<{ otp?: string; email?: string }>("/auth/admin-login", {
+  return request<{ user?: AuthUser; otp?: string; email?: string }>("/auth/admin-login", {
     method: "POST",
     body: JSON.stringify({ identifier: email, password, rememberMe }),
   });
@@ -211,15 +162,9 @@ export function registerCitizen(payload: {
   password: string;
   confirmPassword: string;
 }) {
-  return request<{ token?: string; user?: AuthUser }>("/auth/register", {
+  return request<{ user?: AuthUser }>("/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
-  }).then((response) => {
-    if (response.data?.token) {
-      setStoredTokens(response.data.token);
-    }
-
-    return response;
   });
 }
 
@@ -238,12 +183,6 @@ export function verifyOtp(
   return request("/auth/verify-otp", {
     method: "POST",
     body: JSON.stringify({ email, otp, purpose }),
-  }).then((response) => {
-    // Store token if authentication was successful
-    if (response.data?.token) {
-      setStoredTokens(response.data.token);
-    }
-    return response;
   });
 }
 
@@ -259,6 +198,5 @@ export function getProfile() {
 }
 
 export function logout() {
-  clearStoredTokens();
   return request("/auth/logout", { method: "POST" });
 }

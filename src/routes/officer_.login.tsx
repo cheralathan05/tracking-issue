@@ -25,6 +25,12 @@ function OfficerLoginPage() {
 
     try {
       const result = await loginAdmin(email, password, true);
+
+      if (result.data?.user) {
+        await navigate({ to: "/officer/dashboard" });
+        return;
+      }
+
       const resolvedEmail = result.data?.email ?? email;
       await navigate({
         to: `/verify-otp?email=${encodeURIComponent(resolvedEmail)}&purpose=admin_login&returnTo=/officer/dashboard` as never,

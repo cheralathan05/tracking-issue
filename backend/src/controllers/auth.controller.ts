@@ -111,6 +111,18 @@ export async function adminLogin(req: Request, res: Response) {
     userAgent: req.get("user-agent") ?? undefined,
   });
 
+  // If a session was returned (verified admin), set auth cookies and return user
+  if ("accessToken" in result && result.accessToken && result.refreshToken) {
+    setAuthCookies(res, result.accessToken, result.refreshToken);
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
+      data: { user: result.user },
+    });
+    return;
+  }
+
   res.status(200).json({
     success: true,
     message: result.message,

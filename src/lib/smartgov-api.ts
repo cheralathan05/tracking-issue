@@ -51,15 +51,10 @@ async function request<T>(path: string, init?: RequestInit, query?: Record<strin
   let response: Response;
 
   try {
-    const token = typeof window !== "undefined" ? localStorage.getItem("smartgov_access_token") : null;
-    const headers = {
+    const headers: Record<string, string> = {
       "content-type": "application/json",
       ...(init?.headers ?? {}),
     };
-
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
 
     response = await fetch(buildUrl(path, query), {
       ...init,
@@ -341,6 +336,7 @@ export function getOfficerInvitation(token: string) {
 export function acceptOfficerInvitation(
   token: string,
   payload: {
+    username?: string;
     password: string;
     confirmPassword: string;
   },

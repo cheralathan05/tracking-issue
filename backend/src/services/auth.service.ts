@@ -154,10 +154,12 @@ async function ensureNotLocked(user: {
 
 async function registerVerificationOtp(email: string) {
   const { otp } = await createOtp(email, "registration");
-  // Send email non-blocking to avoid API timeout
-  sendEmailVerificationOtpEmail(email, otp).catch((err) => {
+  try {
+    await sendEmailVerificationOtpEmail(email, otp);
+  } catch (err) {
     console.error("Failed to send verification OTP email:", err);
-  });
+    throw new AppError("Unable to send verification email. Please try again later.", 502);
+  }
   return otp;
 }
 
@@ -400,7 +402,17 @@ export async function loginCitizen(input: LoginInput, meta?: AuthMeta) {
   }
 
   if (!user.isVerified || !user.emailVerified) {
-    throw new AppError("Please verify your email before login", 403);
+    const email = normalizeEmail(user.email);
+    const otp = await registerVerificationOtp(email);
+    throw new AppError(
+      "Please verify your email before login",
+      403,
+      {
+        emailVerificationRequired: true,
+        email,
+        otp: env.NODE_ENV === "development" ? otp : undefined,
+      },
+    );
   }
 
   await resetLoginAttempts(user.id);
@@ -443,17 +455,39 @@ export async function loginAdmin(input: AdminLoginInput, meta?: AuthMeta) {
   }
 
   if (!user.isVerified || !user.emailVerified) {
-    throw new AppError("Account not verified. Complete email verification before login.", 403);
+    const email = normalizeEmail(user.email);
+    const otp = await registerVerificationOtp(email);
+    throw new AppError(
+      "Please verify your email before login",
+      403,
+      {
+        emailVerificationRequired: true,
+        email,
+        otp: env.NODE_ENV === "development" ? otp : undefined,
+      },
+    );
   }
 
   await resetLoginAttempts(user.id);
+  // If account is already verified, issue session immediately (direct login)
+  if (user.isVerified && user.emailVerified) {
+    const session = await issueSession(user.id, true, meta);
+    await writeAuditLog("admin_login", user.id, { rememberMe: true }, meta);
+
+    return {
+      message: "Login successful",
+      ...session,
+    };
+  }
 
   const email = normalizeEmail(user.email);
   const { otp } = await createOtp(email, "admin_login");
-  // Send email non-blocking to avoid API timeout
-  sendAdminLoginOtpEmail(email, otp).catch((err) => {
+  try {
+    await sendAdminLoginOtpEmail(email, otp);
+  } catch (err) {
     console.error("Failed to send admin login OTP email:", err);
-  });
+    throw new AppError("Unable to send admin login OTP email. Please try again later.", 502);
+  }
   await writeAuditLog("admin_login_otp_requested", user.id, { email, role: user.role }, meta);
 
   return {
@@ -541,10 +575,12 @@ export async function startForgotPasswordFlow(input: ForgotPasswordInput, meta?:
   }
 
   const { otp } = await createOtp(email, "password_reset");
-  // Send email non-blocking to avoid API timeout
-  sendPasswordResetOtpEmail(email, otp).catch((err) => {
+  try {
+    await sendPasswordResetOtpEmail(email, otp);
+  } catch (err) {
     console.error("Failed to send password reset OTP email:", err);
-  });
+    throw new AppError("Unable to send password reset email. Please try again later.", 502);
+  }
   await writeAuditLog("password_reset_otp_requested", user.id, { email }, meta);
 
   return {
@@ -567,9 +603,11 @@ export async function verifyOtpFlow(input: VerifyOtpInput, meta?: AuthMeta) {
     await clearOtpRecords(email, "registration");
     await writeAuditLog("email_verified", user.id, { email, purpose: input.purpose }, meta);
 
+    const session = await issueSession(user.id, true, meta);
+
     return {
       message: "Email verified successfully",
-      user,
+      ...session,
     };
   }
 

@@ -9,6 +9,8 @@ import { loginAdmin } from "@/lib/auth-api";
 
 const loginSearchSchema = z.object({
   returnTo: z.string().optional(),
+  email: z.string().optional(),
+  verified: z.string().optional(),
 });
 
 export const Route = createFileRoute("/admin_/login")({
@@ -21,9 +23,10 @@ function AdminLoginPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(search.email ?? "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const verifiedNotice = search.verified === "1";
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,8 +35,15 @@ function AdminLoginPage() {
 
     try {
       const result = await loginAdmin(email, password, true);
-      const resolvedEmail = result.data?.email ?? email;
       const returnTo = search.returnTo?.startsWith("/") ? search.returnTo : "/admin/dashboard";
+
+      // If server returned an authenticated user (session cookies set), go straight to admin
+      if (result.data?.user) {
+        await navigate({ to: returnTo as never });
+        return;
+      }
+
+      const resolvedEmail = result.data?.email ?? email;
       await navigate({
         to: `/verify-otp?email=${encodeURIComponent(resolvedEmail)}&purpose=admin_login&returnTo=${encodeURIComponent(returnTo)}` as never,
       });
@@ -80,6 +90,12 @@ function AdminLoginPage() {
             <h1 className="text-2xl font-bold tracking-tight">Admin sign in</h1>
             <p className="text-sm text-muted-foreground">Authorized government officials only.</p>
           </div>
+
+          {verifiedNotice ? (
+            <div className="rounded-lg border border-success/20 bg-success/10 p-3 text-sm text-success-foreground">
+              Email verified successfully. Sign in to continue.
+            </div>
+          ) : null}
 
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-1.5">

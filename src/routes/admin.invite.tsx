@@ -41,7 +41,7 @@ function InviteOfficerPage() {
         mobile,
         department,
         area,
-        username: username.trim(),
+        username: username.trim() || undefined,
       });
 
       setInviteUrl(result.invitation.invitationUrl ?? null);
@@ -167,9 +167,9 @@ function InviteOfficerPage() {
               id="username"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              required
-              placeholder="ramesh_sgm"
+              placeholder="ramesh_sgm (optional)"
             />
+            <p className="text-xs text-muted-foreground">Optional; the officer can set or change username during activation.</p>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <Label htmlFor="inviteLink">Invite link</Label>
