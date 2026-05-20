@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { createOfficerInvitation, regenerateOfficerInvitation, resendOfficerInvitation } from "@/lib/smartgov-api";
+import { listOfficerInvitations, type OfficerInvitationRecord } from "@/lib/smartgov-api";
 
 const DEPARTMENTS = ["Water Supply", "Electricity", "Roads", "Sanitation", "Public Safety", "Health", "Corruption", "Others"] as const;
 
@@ -27,6 +28,7 @@ function InviteOfficerPage() {
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [actionLoading, setActionLoading] = useState<"resend" | "regenerate" | null>(null);
+  const [invitations, setInvitations] = useState<OfficerInvitationRecord[]>([]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,12 +82,22 @@ function InviteOfficerPage() {
       const result = await regenerateOfficerInvitation(inviteCode);
       setInviteUrl(result.invitation.invitationUrl ?? inviteUrl);
       toast.success("Invitation link regenerated");
+      await refreshInvitations();
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : "Unable to regenerate invitation link");
     } finally {
       setActionLoading(null);
     }
   };
+
+  async function refreshInvitations() {
+    try {
+      const result = await listOfficerInvitations();
+      setInvitations(result.invitations ?? []);
+    } catch (err) {
+      // ignore, keep existing list
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -192,6 +204,71 @@ function InviteOfficerPage() {
           {loading ? "Creating invitation..." : submitSuccess ? "Invitation Sent Successfully" : "Create Invitation"}
         </Button>
       </form>
+
+      <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-semibold">Pending Invitations</div>
+          <Button size="sm" variant="outline" onClick={refreshInvitations}>Refresh</Button>
+        </div>
+        <div className="mt-4 space-y-3">
+          {invitations.length === 0 ? (
+            <div className="text-xs text-muted-foreground">No invitations found.</div>
+          ) : (
+            invitations.map((inv) => (
+              <div key={inv.id} className="flex items-center justify-between rounded-md border p-3">
+                <div className="text-sm">
+                  <div className="font-medium">{inv.fullName} — {inv.email}</div>
+                  <div className="text-xs text-muted-foreground">Status: {inv.status} • Expires: {new Date(inv.expiresAt).toLocaleString()}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      setActionLoading("resend");
+                      try {
+                        const r = await resendOfficerInvitation(inv.code);
+                        toast.success("Invitation email sent");
+                        setInviteUrl(r.invitation.invitationUrl ?? inviteUrl);
+                        await refreshInvitations();
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : String(err));
+                      } finally {
+                        setActionLoading(null);
+                      }
+                    }}
+                    disabled={actionLoading !== null}
+                  >
+                    Send Email
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      setActionLoading("regenerate");
+                      try {
+                        const r = await regenerateOfficerInvitation(inv.code);
+                        toast.success("Invitation link regenerated");
+                        setInviteUrl(r.invitation.invitationUrl ?? inviteUrl);
+                        await refreshInvitations();
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : String(err));
+                      } finally {
+                        setActionLoading(null);
+                      }
+                    }}
+                    disabled={actionLoading !== null}
+                  >
+                    Regenerate
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-card">
         <div className="flex items-center gap-3 text-sm font-semibold text-foreground">

@@ -13,6 +13,11 @@ const adminRoles = new Set([
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
+    if (typeof window === "undefined") {
+      // Skip redirects during SSR so the client can attempt session restore.
+      return;
+    }
+
     const session = await ensureAuthSession();
 
     if (!session) {

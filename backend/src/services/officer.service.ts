@@ -490,3 +490,15 @@ export async function listOfficers() {
     officers,
   };
 }
+
+export async function listOfficerInvitations() {
+  const invitations = await prisma.officerInvitation.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+
+  const origin = resolveFrontendOrigin(undefined);
+
+  return {
+    invitations: invitations.map((inv) => serializeInvitation(inv, buildInvitationUrl(origin, createActivationToken(inv)))),
+  };
+}

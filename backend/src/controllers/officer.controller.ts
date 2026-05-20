@@ -5,6 +5,7 @@ import {
   createOfficerInvitation,
   getOfficerInvitationByToken,
   listOfficers,
+  listOfficerInvitations,
   regenerateOfficerInvitationLink,
   resendOfficerInvitation,
 } from "../services/officer.service.js";
@@ -40,6 +41,11 @@ export async function acceptInvitation(req: Request, res: Response) {
 export async function getAllOfficers(_req: Request, res: Response) {
   const result = await listOfficers();
   res.status(200).json({ success: true, message: "Officers fetched successfully", data: result });
+}
+
+export async function listInvitations(_req: Request, res: Response) {
+  const result = await listOfficerInvitations();
+  res.status(200).json({ success: true, message: "Invitations fetched successfully", data: result });
 }
 
 export async function regenerateInvitationLink(req: Request, res: Response) {

@@ -363,6 +363,10 @@ export function listOfficers() {
   return request<{ officers: OfficerSummary[] }>("/officers", { method: "GET" });
 }
 
+export function listOfficerInvitations() {
+  return request<{ invitations: OfficerInvitationRecord[] }>("/officers/invitations", { method: "GET" });
+}
+
 export function listAdminUsers(query?: {
   scope?: "all" | "citizen" | "officer" | "admin";
   verification?: "all" | "verified" | "pending";

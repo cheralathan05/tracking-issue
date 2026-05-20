@@ -175,3 +175,95 @@ model AuditLog {
   @@index([action])
   @@map("audit_logs")
 }
+
+// Chat support models
+model ChatRoom {
+  id          String   @id @default(cuid())
+  complaintId String?
+  roomType    String   @default("complaint")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  complaint   Complaint?        @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  participants ChatParticipant[]
+  messages    ChatMessage[]
+  notifications ChatNotification[]
+
+  @@index([complaintId])
+  @@map("chat_rooms")
+}
+
+model ChatParticipant {
+  id        String   @id @default(cuid())
+  roomId    String
+  userId    String
+  role      Role
+  joinedAt  DateTime @default(now())
+  lastSeenAt DateTime?
+  isMuted   Boolean  @default(false)
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([userId])
+  @@map("chat_participants")
+}
+
+model ChatMessage {
+  id          String   @id @default(cuid())
+  roomId      String
+  senderId    String
+  receiverId  String?
+  complaintId String?
+  message     String?
+  messageType String   @default("text")
+  attachment  Json?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  isRead      Boolean  @default(false)
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender User  @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User? @relation(fields: [receiverId], references: [id], onDelete: SetNull)
+  complaint Complaint? @relation(fields: [complaintId], references: [id], onDelete: SetNull)
+
+  @@index([roomId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([complaintId])
+  @@map("chat_messages")
+}
+
+model ChatAttachment {
+  id         String   @id @default(cuid())
+  messageId  String
+  fileUrl    String
+  fileType   String
+  uploadedBy String
+  createdAt  DateTime @default(now())
+
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploader User       @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("chat_attachments")
+}
+
+model ChatNotification {
+  id        String   @id @default(cuid())
+  userId    String
+  roomId    String
+  messageId String?
+  type      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  message ChatMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([roomId])
+  @@map("chat_notifications")
+}

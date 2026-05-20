@@ -11,6 +11,7 @@ import {
   fetchOfficerInvitation,
   getAllOfficers,
   inviteOfficer,
+  listInvitations,
   regenerateInvitationLink,
   resendInvitation,
 } from "../controllers/officer.controller.js";
@@ -18,6 +19,12 @@ import {
 export const officerRouter = Router();
 
 officerRouter.get("/", requireAuth, requireRole("super_admin", "state_admin", "district_officer", "department_officer", "admin"), getAllOfficers);
+officerRouter.get(
+  "/invitations",
+  requireAuth,
+  requireRole("super_admin", "state_admin", "district_officer", "department_officer", "admin"),
+  listInvitations,
+);
 officerRouter.post(
   "/invitations",
   requireAuth,

@@ -4,6 +4,12 @@ import { ensureAuthSession, getProfile } from "@/lib/auth-api";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async ({ location }) => {
+    if (typeof window === "undefined") {
+      // During server-side rendering we cannot access browser cookies.
+      // Skip auth redirects here and let the client attempt session restore.
+      return;
+    }
+
     const session = await ensureAuthSession();
 
     if (!session) {
