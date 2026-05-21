@@ -9,7 +9,7 @@ function resolveSocketUrl() {
   }
 
   if (typeof window !== "undefined") {
-    if (window.location.hostname === "localhost" && window.location.port === "3000") {
+    if (window.location.hostname === "localhost") {
       return "http://localhost:4000";
     }
 

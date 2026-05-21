@@ -3,7 +3,8 @@ import { env } from "../config/env.js";
 
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 20,
+  limit: 40,
+  skip: () => env.NODE_ENV === "development",
   standardHeaders: true,
   legacyHeaders: false,
   message: {

@@ -12,6 +12,43 @@ async function bootstrap() {
     const server = http.createServer(app);
     const io = initSocket(server, env.FRONTEND_ORIGIN.split(",").map((s) => s.trim()));
 
+    function parseCookies(cookieHeader: string | undefined): Record<string, string> {
+      if (!cookieHeader) return {};
+      return cookieHeader.split(";").reduce<Record<string, string>>((acc, part) => {
+        const [name, ...rest] = part.split("=");
+        if (!name) return acc;
+        const key = name.trim();
+        const value = rest.join("=").trim();
+        if (key) acc[key] = decodeURIComponent(value);
+        return acc;
+      }, {});
+    }
+
+    io.use(async (socket, next) => {
+      try {
+        const tokenFromAuth = (socket.handshake.auth && (socket.handshake.auth as any).token) || undefined;
+        const cookies = parseCookies(socket.handshake.headers.cookie as string | undefined);
+        const token = tokenFromAuth || cookies[env.AUTH_ACCESS_COOKIE_NAME];
+
+        if (!token) {
+          return next(new Error("Missing token"));
+        }
+
+        const { verifyAccessToken } = await import("./utils/jwt.js");
+        const payload = verifyAccessToken(String(token));
+        if (!payload.sub) return next(new Error("Unauthorized"));
+
+        const user = await prisma.user.findUnique({ where: { id: payload.sub }, select: { id: true, fullName: true, role: true, isVerified: true, emailVerified: true } });
+        if (!user) return next(new Error("Unauthorized"));
+        if (!user.isVerified || !user.emailVerified) return next(new Error("Email not verified"));
+
+        (socket as any).data.user = user;
+        next();
+      } catch (err) {
+        next(err as Error);
+      }
+    });
+
     io.on("connection", (socket) => {
       socket.on("identify", ({ userId, role }: { userId?: string; role?: string }) => {
         if (userId) {
@@ -35,69 +72,53 @@ async function bootstrap() {
         }
       });
 
-      // Socket authentication middleware: accept token via handshake.auth.token or cookies
-      function parseCookies(cookieHeader: string | undefined): Record<string, string> {
-        if (!cookieHeader) return {};
-        return cookieHeader.split(";").reduce<Record<string, string>>((acc, part) => {
-          const [name, ...rest] = part.split("=");
-          if (!name) return acc;
-          const key = name.trim();
-          const value = rest.join("=").trim();
-          if (key) acc[key] = decodeURIComponent(value);
-          return acc;
-        }, {});
-      }
+      socket.on("joinRoom", async (roomId: string) => {
+        socket.join(`room:${roomId}`);
+      });
 
-      io.use(async (socket, next) => {
+      socket.on("leaveRoom", (roomId: string) => {
+        socket.leave(`room:${roomId}`);
+      });
+
+      socket.on("sendMessage", async (payload: any) => {
         try {
-          const tokenFromAuth = (socket.handshake.auth && (socket.handshake.auth as any).token) || undefined;
-          const cookies = parseCookies(socket.handshake.headers.cookie as string | undefined);
-          const token = tokenFromAuth || cookies[env.AUTH_ACCESS_COOKIE_NAME];
-
-          if (!token) {
-            return next(new Error("Missing token"));
-          }
-
-          const { verifyAccessToken } = await import("./utils/jwt.js");
-          const payload = verifyAccessToken(String(token));
-          if (!payload.sub) return next(new Error("Unauthorized"));
-
-          const user = await prisma.user.findUnique({ where: { id: payload.sub }, select: { id: true, fullName: true, role: true, isVerified: true, emailVerified: true } });
-          if (!user) return next(new Error("Unauthorized"));
-          if (!user.isVerified || !user.emailVerified) return next(new Error("Email not verified"));
-
-          (socket as any).data.user = user;
-          next();
-        } catch (err) {
-          next(err as Error);
+          // ensure senderId is trusted
+          const senderId = (socket as any).data.user?.id;
+          if (!senderId) return;
+          const safePayload = { ...payload, senderId };
+          const msg = await chatService.sendMessage(safePayload);
+          io.to(`room:${payload.roomId}`).emit("message", msg);
+        } catch (e) {
+          // ignore or emit error
         }
       });
+    });
 
-      io.on("connection", (socket) => {
-        socket.on("joinRoom", async (roomId: string) => {
-          socket.join(`room:${roomId}`);
-        });
+    const MAX_PORT_RETRIES = 5;
+    let currentPort = Number(env.PORT) || 4000;
 
-        socket.on("leaveRoom", (roomId: string) => {
-          socket.leave(`room:${roomId}`);
-        });
+    let retriesLeft = MAX_PORT_RETRIES;
 
-        socket.on("sendMessage", async (payload: any) => {
-          try {
-            // ensure senderId is trusted
-            const senderId = (socket as any).data.user?.id;
-            if (!senderId) return;
-            const safePayload = { ...payload, senderId };
-            const msg = await chatService.sendMessage(safePayload);
-            io.to(`room:${payload.roomId}`).emit("message", msg);
-          } catch (e) {
-            // ignore or emit error
-          }
-        });
-      });
+    server.on("error", (err: any) => {
+      if (err && (err as any).code === "EADDRINUSE") {
+        console.error(`Port ${currentPort} is already in use.`);
+        if (retriesLeft > 0) {
+          retriesLeft -= 1;
+          currentPort += 1;
+          console.log(`Attempting to listen on port ${currentPort} (retries left: ${retriesLeft})`);
+          setTimeout(() => server.listen(currentPort), 100);
+        } else {
+          console.error(`No available ports after ${MAX_PORT_RETRIES} attempts. Exiting.`);
+          process.exit(1);
+        }
+      } else {
+        console.error("Server error:", err);
+        process.exit(1);
+      }
+    });
 
-    server.listen(env.PORT, () => {
-      console.log(`SmartGov auth backend listening on port ${env.PORT}`);
+    server.listen(currentPort, () => {
+      console.log(`SmartGov auth backend listening on port ${currentPort}`);
     });
   } catch (error) {
     console.error("Failed to start SmartGov auth backend", error);
@@ -113,6 +134,16 @@ process.on("SIGINT", async () => {
 process.on("SIGTERM", async () => {
   await prisma.$disconnect();
   process.exit(0);
+});
+
+process.on("uncaughtException", (err: any) => {
+  console.error("Uncaught exception:", err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason: any) => {
+  console.error("Unhandled rejection:", reason);
+  process.exit(1);
 });
 
 void bootstrap();

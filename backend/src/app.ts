@@ -45,7 +45,8 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
-    limit: 200,
+    limit: 500,
+    skip: () => env.NODE_ENV === "development",
     standardHeaders: true,
     legacyHeaders: false,
     message: {

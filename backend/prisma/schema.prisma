@@ -52,6 +52,12 @@ model User {
   assignedComplaints Complaint[] @relation("ComplaintAssignedOfficer")
   invitationsCreated OfficerInvitation[] @relation("InvitationCreator")
   invitationsAccepted OfficerInvitation[] @relation("InvitationAcceptedBy")
+  chatParticipants ChatParticipant[]
+  sentMessages ChatMessage[] @relation("ChatMessageSender")
+  receivedMessages ChatMessage[] @relation("ChatMessageReceiver")
+  uploadedAttachments ChatAttachment[]
+  chatNotifications ChatNotification[]
+  notifications Notification[]
 
   @@map("users")
 }
@@ -91,6 +97,8 @@ model Complaint {
 
   reporterUser User? @relation("ComplaintReporter", fields: [reporterUserId], references: [id], onDelete: SetNull)
   assignedOfficer User? @relation("ComplaintAssignedOfficer", fields: [assignedOfficerId], references: [id], onDelete: SetNull)
+  chatRooms ChatRoom[]
+  chatMessages ChatMessage[]
 
   @@index([status])
   @@index([department])
@@ -224,9 +232,11 @@ model ChatMessage {
   isRead      Boolean  @default(false)
 
   room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  sender User  @relation(fields: [senderId], references: [id], onDelete: Cascade)
-  receiver User? @relation(fields: [receiverId], references: [id], onDelete: SetNull)
+  sender User  @relation("ChatMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User? @relation("ChatMessageReceiver", fields: [receiverId], references: [id], onDelete: SetNull)
   complaint Complaint? @relation(fields: [complaintId], references: [id], onDelete: SetNull)
+  attachments ChatAttachment[]
+  notifications ChatNotification[]
 
   @@index([roomId])
   @@index([senderId])
