@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 
 import { prisma } from "../config/prisma.js";
 import { AppError } from "../utils/errors.js";
+import * as chatService from "./chat.service.js";
 import type {
   ComplaintAssignmentInput,
   ComplaintQueryInput,
@@ -16,6 +17,7 @@ import {
   isAreaMatch,
   pickSuggestedOfficer,
 } from "../utils/complaint-routing.js";
+import { createNotification, createNotificationsForRole } from "./notification.service.js";
 
 const adminRoles = new Set(["super_admin", "state_admin", "district_officer", "department_officer", "admin", "officer"]);
 
@@ -169,6 +171,24 @@ export async function createComplaint(input: ComplaintSubmissionInput, reporterU
     include: {
       assignedOfficer: { select: officerSummarySelect },
     },
+  });
+
+  if (reporterUserId) {
+    await createNotification(reporterUserId, {
+      title: "Complaint submitted successfully",
+      message: `Your complaint ${grievanceId} has been received and is under review.`,
+      type: "submission",
+      priority: "medium",
+      actionUrl: `/complaints/${complaint.id}`,
+    });
+  }
+
+  await createNotificationsForRole("admin", {
+    title: "New complaint submitted",
+    message: `A new complaint ${grievanceId} has been filed and requires review.`,
+    type: "admin",
+    priority: "high",
+    actionUrl: `/admin/complaints/${complaint.id}`,
   });
 
   return {
@@ -332,6 +352,32 @@ export async function addComplaintMessage(
     },
   });
 
+  // create chat room for complaint and add participants (best-effort)
+  try {
+    const room = await chatService.getOrCreateRoomForComplaint(updated.id);
+    if (room) {
+      await chatService.addParticipant(room.id, officer.id, "officer");
+      if (updated.reporterUserId) {
+        await chatService.addParticipant(room.id, updated.reporterUserId, "citizen");
+      }
+
+      try {
+        await chatService.sendMessage({
+          roomId: room.id,
+          senderId: operator.id,
+          receiverId: officer.id,
+          complaintId: updated.id,
+          message: `Complaint assigned to ${officer.fullName}. Chat room created.`,
+          messageType: "system",
+        });
+      } catch (e) {
+        // swallow
+      }
+    }
+  } catch (e) {
+    // non-blocking: assignment should not fail if chat creation fails
+  }
+
   return {
     message: "Complaint message sent successfully",
     messageRecord: mapChatEntry(nextEntry, updated),
@@ -409,6 +455,32 @@ export async function assignComplaint(
     },
   });
 
+  if (updated.reporterUserId) {
+    await createNotification(updated.reporterUserId, {
+      title: "Officer assigned",
+      message: `Your complaint ${updated.grievanceId} was assigned to ${updated.assignedOfficerName}.`,
+      type: "assignment",
+      priority: "high",
+      actionUrl: `/complaints/${updated.id}`,
+    });
+  }
+
+  await createNotification(updated.assignedOfficerId, {
+    title: "New assignment received",
+    message: `You have been assigned complaint ${updated.grievanceId}.`,
+    type: "assignment",
+    priority: "high",
+    actionUrl: `/officer/complaints/${updated.id}`,
+  });
+
+  await createNotificationsForRole("admin", {
+    title: "Complaint assigned",
+    message: `Complaint ${updated.grievanceId} has been assigned to ${updated.assignedOfficerName}.`,
+    type: "admin",
+    priority: "medium",
+    actionUrl: `/admin/complaints/${updated.id}`,
+  });
+
   return {
     message: "Complaint assigned successfully",
     complaint: {
@@ -455,6 +527,36 @@ export async function updateComplaintStatus(
       reporterUser: { select: officerSummarySelect },
     },
   });
+
+  if (updated.reporterUserId) {
+    await createNotification(updated.reporterUserId, {
+      title: "Status updated",
+      message: `Your complaint ${updated.grievanceId} is now ${updated.status}.`,
+      type: "status",
+      priority: updated.status === "Resolved" ? "high" : "medium",
+      actionUrl: `/complaints/${updated.id}`,
+    });
+  }
+
+  if (updated.assignedOfficerId && updated.assignedOfficerId !== operator.id) {
+    await createNotification(updated.assignedOfficerId, {
+      title: "Complaint status changed",
+      message: `Complaint ${updated.grievanceId} was updated to ${updated.status}.`,
+      type: "status",
+      priority: "medium",
+      actionUrl: `/officer/complaints/${updated.id}`,
+    });
+  }
+
+  if (updated.status === "Escalated") {
+    await createNotificationsForRole("admin", {
+      title: "Escalation raised",
+      message: `Complaint ${updated.grievanceId} has been escalated and needs urgent review.`,
+      type: "escalation",
+      priority: "critical",
+      actionUrl: `/admin/complaints/${updated.id}`,
+    });
+  }
 
   return {
     message: "Complaint status updated successfully",

@@ -184,6 +184,9 @@ export interface ComplaintRecord {
   priority: ComplaintPriority;
   status: ComplaintStatus;
   publicVisibility: boolean;
+  escalationLevel?: number | null;
+  escalatedAt?: string | null;
+  escalationReason?: string | null;
   suggestedOfficerId?: string | null;
   suggestedOfficerName?: string | null;
   assignedOfficerId?: string | null;
@@ -402,4 +405,30 @@ export function updateAdminUser(
 
 export function requestComplaintSummaryForDashboard() {
   return fetchComplaintSummary();
+}
+
+export type NotificationRecord = {
+  id: string;
+  title: string;
+  message: string;
+  type: "success" | "warning" | "info" | "critical";
+  priority: "low" | "medium" | "high" | "critical";
+  isRead: boolean;
+  actionUrl?: string;
+  data?: Record<string, unknown> | null;
+  createdAt: string;
+};
+
+export function fetchNotifications() {
+  return request<{ notifications: NotificationRecord[] }>("/notifications", { method: "GET" });
+}
+
+export function markNotificationRead(id: string) {
+  return request<{ notification: NotificationRecord }>(`/notifications/${encodeURIComponent(id)}/read`, {
+    method: "POST",
+  });
+}
+
+export function markAllNotificationsRead() {
+  return request<void>("/notifications/read-all", { method: "POST" });
 }

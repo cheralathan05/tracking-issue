@@ -3,13 +3,13 @@ import {
   LayoutDashboard,
   ClipboardList,
   UploadCloud,
-  Bell,
   LogOut,
   Briefcase,
   Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 
 const nav = [
   { to: "/officer/dashboard", label: "My Dashboard", icon: LayoutDashboard },
@@ -69,10 +69,7 @@ export function OfficerLayout() {
               <span className="hidden items-center gap-1.5 rounded-full border border-info/30 bg-info/10 px-2.5 py-1 text-[11px] font-medium text-info sm:inline-flex">
                 <Briefcase className="h-3 w-3" /> Field Officer
               </span>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-4 w-4" />
-                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
-              </Button>
+              <NotificationBell />
               <div className="flex items-center gap-2 rounded-full border border-border bg-card px-2 py-1 pr-3">
                 <div className="grid h-7 w-7 place-items-center rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
                   RK

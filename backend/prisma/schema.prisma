@@ -267,3 +267,21 @@ model ChatNotification {
   @@index([roomId])
   @@map("chat_notifications")
 }
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String
+  priority  String   @default("medium")
+  isRead    Boolean  @default(false)
+  actionUrl String?
+  data      Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}

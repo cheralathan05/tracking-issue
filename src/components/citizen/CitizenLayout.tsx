@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 import { getProfile, logout, type AuthUser } from "@/lib/auth-api";
 
 const nav = [
@@ -103,10 +104,7 @@ export function CitizenLayout() {
               <Input placeholder="Search by Grievance ID, category, location…" className="pl-9" />
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
-                <Bell className="h-4 w-4" />
-                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
-              </Button>
+                <NotificationBell />
               <div className="flex items-center gap-2 rounded-full border border-border bg-card px-2 py-1 pr-3">
                 <div className="grid h-7 w-7 place-items-center rounded-full bg-gradient-primary text-xs font-semibold text-primary-foreground">
                 {(profile?.fullName?.trim().charAt(0) ?? "U").toUpperCase()}

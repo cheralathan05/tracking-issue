@@ -1,5 +1,6 @@
 import { prisma } from "../config/prisma.js";
 import { AppError } from "../utils/errors.js";
+import { createNotification } from "./notification.service.js";
 
 export async function getOrCreateRoomForComplaint(complaintId: string) {
   if (!complaintId) throw new AppError("complaintId required", 400);
@@ -58,6 +59,20 @@ export async function sendMessage(input: {
 
   if (notifications.length) {
     await prisma.chatNotification.createMany({ data: notifications });
+
+    const messageSnippet = (message || "New chat message").slice(0, 120);
+    await Promise.all(
+      notifications.map((notification) =>
+        createNotification(notification.userId, {
+          title: "New chat message",
+          message: messageSnippet,
+          type: "chat",
+          priority: "medium",
+          actionUrl: `/chat`,
+          data: { roomId, messageId: created.id, complaintId: complaintId || null },
+        }).catch(() => null),
+      ),
+    );
   }
 
   // audit log
