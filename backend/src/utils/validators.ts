@@ -232,6 +232,8 @@ export const complaintQuerySchema = z.object({
   view: z.enum(["all", "mine", "assigned"]).optional().default("all"),
   status: complaintStatusSchema.optional(),
   search: z.string().trim().optional(),
+  limit: z.coerce.number().int().positive().max(500).optional(),
+  summaryOnly: z.preprocess((value) => value === true || value === "true", z.boolean()).optional().default(false),
 });
 
 export const adminUserQuerySchema = z.object({

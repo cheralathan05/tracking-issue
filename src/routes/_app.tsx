@@ -29,6 +29,18 @@ export const Route = createFileRoute("/_app")({
         replace: true,
       });
     }
+
+    return {
+      profile,
+    };
   },
-  component: CitizenLayout,
+  component: CitizenApp,
 });
+
+function CitizenApp() {
+  const { profile } = Route.useRouteContext() as {
+    profile: Awaited<ReturnType<typeof getProfile>> | null;
+  };
+
+  return <CitizenLayout initialUser={profile?.data?.user ?? null} />;
+}

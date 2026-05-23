@@ -19,18 +19,30 @@ function resolveSocketUrl() {
   return "/";
 }
 
-export function useSocket(url = resolveSocketUrl()) {
+export function useSocket(url = resolveSocketUrl(), enabled = true) {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    const s = io(url, { transports: ["websocket"], autoConnect: true });
+    if (!enabled) {
+      socketRef.current?.disconnect();
+      socketRef.current = null;
+      return;
+    }
+
+    const s = io(url, {
+      transports: ["websocket"],
+      autoConnect: false,
+      reconnection: false,
+    });
+
+    s.connect();
     socketRef.current = s;
 
     return () => {
       s.disconnect();
       socketRef.current = null;
     };
-  }, [url]);
+  }, [url, enabled]);
 
   return socketRef;
 }

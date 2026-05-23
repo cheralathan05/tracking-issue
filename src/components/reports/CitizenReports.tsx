@@ -34,25 +34,19 @@ export function CitizenReports() {
   const [summary, setSummary] = useState<ComplaintSummary | null>(null);
   const [complaints, setComplaints] = useState<ComplaintRecord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const REPORT_COMPLAINT_LIMIT = 100;
 
   useEffect(() => {
     let active = true;
 
-    Promise.all([fetchComplaintSummary(), listComplaints({ view: "mine" })])
+    Promise.all([
+      fetchComplaintSummary(),
+      listComplaints({ view: "mine", limit: REPORT_COMPLAINT_LIMIT, summaryOnly: true }),
+    ])
       .then(([summaryResult, complaintResult]) => {
         if (!active) return;
         setSummary(summaryResult);
-
-        const MAX_COMPLAINTS = 200;
-        const received = complaintResult.complaints ?? [];
-        const complaintsToUse = received.length > MAX_COMPLAINTS ? received.slice(0, MAX_COMPLAINTS) : received;
-
-        if (received.length > complaintsToUse.length) {
-          // eslint-disable-next-line no-console
-          console.warn(`CitizenReports: trimmed ${received.length - complaintsToUse.length} complaints for performance.`);
-        }
-
-        setComplaints(complaintsToUse);
+        setComplaints(complaintResult.complaints ?? []);
       })
       .catch((err) => {
         if (!active) return;

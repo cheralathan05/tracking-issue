@@ -263,7 +263,13 @@ export function createComplaint(payload: {
   });
 }
 
-export function listComplaints(query?: { view?: "all" | "mine" | "assigned"; status?: ComplaintStatus; search?: string }) {
+export function listComplaints(query?: {
+  view?: "all" | "mine" | "assigned";
+  status?: ComplaintStatus;
+  search?: string;
+  limit?: number;
+  summaryOnly?: boolean;
+}) {
   return request<ComplaintListResult>("/complaints", { method: "GET" }, query as Record<string, string | number | boolean | null | undefined>);
 }
 

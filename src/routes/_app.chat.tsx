@@ -156,7 +156,10 @@ export const Route = createFileRoute("/_app/chat")({
             <div className="mt-3 border-t border-border pt-3">
               <div className="flex items-center gap-2">
                 <input className="flex-1 rounded-md border px-3 py-2" placeholder="Type a message" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') sendMessage(); }} />
-                <input type="file" onChange={(e) => handleFile(e.target.files ? e.target.files[0] : null)} />
+                <label className="inline-flex items-center">
+                  <input type="file" className="hidden" onChange={(e) => handleFile(e.target.files ? e.target.files[0] : null)} />
+                  <Button>Attach</Button>
+                </label>
                 <Button onClick={sendMessage}>Send</Button>
               </div>
             </div>

@@ -249,9 +249,65 @@ export async function listComplaints(
     ];
   }
 
+  const take = query.limit && Number.isFinite(query.limit) ? Math.min(query.limit, 500) : undefined;
+
+  if (query.summaryOnly) {
+    const complaints = await prisma.complaint.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take,
+      select: {
+        id: true,
+        grievanceId: true,
+        reporterName: true,
+        title: true,
+        category: true,
+        department: true,
+        district: true,
+        city: true,
+        priority: true,
+        status: true,
+        assignedOfficerId: true,
+        assignedOfficerName: true,
+        assignedOfficer: { select: officerSummarySelect },
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return {
+      complaintCount: complaints.length,
+      complaints: complaints.map((complaint) => ({
+        ...complaint,
+        createdAt: complaint.createdAt.toISOString(),
+        updatedAt: complaint.updatedAt.toISOString(),
+        reporterEmail: null,
+        reporterMobile: null,
+        description: "",
+        state: "",
+        address: "",
+        landmark: null,
+        pincode: "",
+        publicVisibility: true,
+        escalatedAt: null,
+        escalationReason: null,
+        suggestedOfficerId: null,
+        suggestedOfficerName: null,
+        assignedDepartment: null,
+        assignedArea: null,
+        evidence: [],
+        timeline: [],
+        resolutionSummary: null,
+        resolutionEvidence: [],
+        reporterUser: null,
+      })),
+    };
+  }
+
   const complaints = await prisma.complaint.findMany({
     where,
     orderBy: { createdAt: "desc" },
+    take,
     include: {
       assignedOfficer: { select: officerSummarySelect },
     },

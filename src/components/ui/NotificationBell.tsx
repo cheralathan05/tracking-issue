@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Bell, Check, Circle, Clock3, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { type AuthUser } from "@/lib/auth-api";
 import { useLiveNotifications } from "@/hooks/useLiveNotifications";
 
 const toneClasses: Record<string, string> = {
@@ -10,9 +11,9 @@ const toneClasses: Record<string, string> = {
   critical: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
-export function NotificationBell() {
+export function NotificationBell({ initialUser }: { initialUser?: AuthUser | null }) {
   const [open, setOpen] = useState(false);
-  const { notifications, unreadCount, loading, markAllRead, markAsRead } = useLiveNotifications();
+  const { notifications, unreadCount, loading, markAllRead, markAsRead } = useLiveNotifications(initialUser ?? undefined);
 
   const activeItems = notifications.slice(0, 8);
 
