@@ -13,8 +13,9 @@ chatRouter.use(requireAuth);
 
 chatRouter.post("/rooms/complaint/:complaintId", async (req, res, next) => {
   try {
-    const { complaintId } = req.params;
-    const room = await chatService.getOrCreateRoomForComplaint(complaintId);
+    const rawComplaintId = req.params.complaintId;
+    const complaintId = Array.isArray(rawComplaintId) ? rawComplaintId[0] : rawComplaintId;
+    const room = await chatService.getOrCreateRoomForComplaint(String(complaintId));
     res.json({ success: true, room });
   } catch (err) {
     next(err);
@@ -23,9 +24,10 @@ chatRouter.post("/rooms/complaint/:complaintId", async (req, res, next) => {
 
 chatRouter.get("/rooms/:roomId/messages", requireChatAccess, async (req, res, next) => {
   try {
-    const { roomId } = req.params;
+    const rawRoomId = req.params.roomId;
+    const roomId = Array.isArray(rawRoomId) ? rawRoomId[0] : rawRoomId;
     const { limit = 50, cursor } = req.query as any;
-    const messages = await chatService.getMessages(roomId, Number(limit), cursor);
+    const messages = await chatService.getMessages(String(roomId), Number(limit), cursor);
     res.json({ success: true, messages });
   } catch (err) {
     next(err);
@@ -34,7 +36,8 @@ chatRouter.get("/rooms/:roomId/messages", requireChatAccess, async (req, res, ne
 
 chatRouter.post("/rooms/:roomId/messages", requireChatAccess, async (req, res, next) => {
   try {
-    const { roomId } = req.params;
+    const rawRoomId = req.params.roomId;
+    const roomId = Array.isArray(rawRoomId) ? rawRoomId[0] : rawRoomId;
     const senderId = req.user!.id;
     const { message, messageType, receiverId, attachment } = req.body;
 
@@ -55,9 +58,10 @@ chatRouter.post("/rooms/:roomId/messages", requireChatAccess, async (req, res, n
 
 chatRouter.post("/rooms/:roomId/read", requireChatAccess, async (req, res, next) => {
   try {
-    const { roomId } = req.params;
+    const rawRoomId = req.params.roomId;
+    const roomId = Array.isArray(rawRoomId) ? rawRoomId[0] : rawRoomId;
     const userId = req.user!.id;
-    await chatService.markMessagesRead(roomId, userId);
+    await chatService.markMessagesRead(String(roomId), userId);
     res.json({ success: true });
   } catch (err) {
     next(err);
@@ -67,14 +71,15 @@ chatRouter.post("/rooms/:roomId/read", requireChatAccess, async (req, res, next)
 // Simple attachment endpoint (accepts a hosted file URL or pre-signed URL)
 chatRouter.post("/rooms/:roomId/attachments", requireChatAccess, async (req, res, next) => {
   try {
-    const { roomId } = req.params;
+    const rawRoomId = req.params.roomId;
+    const roomId = Array.isArray(rawRoomId) ? rawRoomId[0] : rawRoomId;
     const senderId = req.user!.id;
     const { fileUrl, fileType, message } = req.body;
 
     if (!fileUrl) return next(new Error("fileUrl required"));
 
     const created = await chatService.sendMessage({
-      roomId,
+      roomId: String(roomId),
       senderId,
       message: message || null,
       messageType: "attachment",
@@ -92,8 +97,8 @@ const uploadDir = path.join(process.cwd(), "uploads", "chat");
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadDir),
-  filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`),
+  destination: (_req: any, _file: any, cb: any) => cb(null, uploadDir),
+  filename: (_req: any, file: any, cb: any) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`),
 });
 
 const upload = multer({ storage });
@@ -104,12 +109,13 @@ chatRouter.post(
   upload.single("file"),
   async (req, res, next) => {
     try {
-      const { roomId } = req.params;
+      const rawRoomId = req.params.roomId;
+      const roomId = Array.isArray(rawRoomId) ? rawRoomId[0] : rawRoomId;
       const senderId = req.user!.id;
 
-      if (!req.file) return next(new Error("file required"));
+      if (!(req as any).file) return next(new Error("file required"));
 
-      const fileUrl = `${env.FRONTEND_ORIGIN.replace(/\/$/, "")}/uploads/chat/${req.file.filename}`;
+      const fileUrl = `${env.FRONTEND_ORIGIN.replace(/\/$/, "")}/uploads/chat/${(req as any).file.filename}`;
 
       // return file URL; client should emit socket 'sendMessage' with attachment to create message record
       res.json({ success: true, fileUrl });

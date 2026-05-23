@@ -29,7 +29,7 @@ export async function createNotification(userId: string, payload: NotificationPa
       type: payload.type,
       priority: payload.priority,
       actionUrl: payload.actionUrl ?? null,
-      data: payload.data ?? null,
+      data: payload.data as any,
     },
   });
 
@@ -50,7 +50,7 @@ export async function createNotification(userId: string, payload: NotificationPa
 
 export async function createNotificationsForRole(role: string, payload: NotificationPayload) {
   const users = await prisma.user.findMany({
-    where: { role },
+    where: { role: role as any },
     select: { id: true },
   });
 

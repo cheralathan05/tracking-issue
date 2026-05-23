@@ -432,3 +432,142 @@ export function markNotificationRead(id: string) {
 export function markAllNotificationsRead() {
   return request<void>("/notifications/read-all", { method: "POST" });
 }
+
+// Escalation APIs
+export type EscalationRecord = {
+  id: string;
+  complaintId: string;
+  reason: string;
+  level: "low" | "medium" | "high" | "emergency";
+  status: "active" | "resolved" | "closed";
+  escalatedBy: string;
+  escalatedByUser: { id: string; fullName: string; email: string };
+  resolvedBy?: string | null;
+  resolvedByUser?: { id: string; fullName: string; email: string } | null;
+  resolutionNote?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string | null;
+};
+
+export function createEscalation(complaintId: string, reason: string, level?: "low" | "medium" | "high" | "emergency") {
+  return request<{ escalation: EscalationRecord }>("/escalations", {
+    method: "POST",
+    body: JSON.stringify({ complaintId, reason, level }),
+  });
+}
+
+export function listEscalations(filters?: { status?: string; level?: string; complaintId?: string }) {
+  return request<{ escalations: EscalationRecord[] }>("/escalations", {
+    method: "GET",
+  }, filters);
+}
+
+export function getEscalation(id: string) {
+  return request<{ escalation: EscalationRecord }>(`/escalations/${encodeURIComponent(id)}`, {
+    method: "GET",
+  });
+}
+
+export function updateEscalation(
+  id: string,
+  update: { status?: "active" | "resolved" | "closed"; resolutionNote?: string }
+) {
+  return request<{ escalation: EscalationRecord }>(`/escalations/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(update),
+  });
+}
+
+// Feedback APIs
+export type FeedbackRecord = {
+  id: string;
+  complaintId: string;
+  rating: number;
+  comment?: string | null;
+  officerRating?: number | null;
+  overallSatisfaction: boolean;
+  suggestedImprovements?: string | null;
+  submittedBy: string;
+  submittedByUser: { id: string; fullName: string; email: string };
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function submitFeedback(
+  complaintId: string,
+  feedback: {
+    rating: number;
+    comment?: string;
+    officerRating?: number;
+    overallSatisfaction?: boolean;
+    suggestedImprovements?: string;
+  }
+) {
+  return request<{ feedback: FeedbackRecord }>("/feedback", {
+    method: "POST",
+    body: JSON.stringify({ complaintId, ...feedback }),
+  });
+}
+
+export function getFeedback(complaintId: string) {
+  return request<{ feedback: FeedbackRecord }>(`/feedback/complaint/${encodeURIComponent(complaintId)}`, {
+    method: "GET",
+  });
+}
+
+export function listFeedback(filters?: { officerId?: string; rating?: number }) {
+  return request<{ feedback: FeedbackRecord[]; total: number }>("/feedback", {
+    method: "GET",
+  }, filters);
+}
+
+export type SatisfactionAnalytics = {
+  totalFeedback: number;
+  averageRating: number;
+  averageOfficerRating: number;
+  satisfactionRate: number;
+  ratingDistribution: Record<number, number>;
+  officerStats: Record<string, { name: string; rating: number; count: number }>;
+};
+
+export function getCitizenSatisfactionAnalytics() {
+  return request<{ analytics: SatisfactionAnalytics }>("/feedback/analytics/satisfaction", {
+    method: "GET",
+  });
+}
+
+export type OfficerPerformance = {
+  totalComplaints: number;
+  resolvedComplaints: number;
+  resolutionRate: number;
+  totalFeedback: number;
+  averageRating: number;
+  satisfactionRate: number;
+};
+
+export function getOfficerPerformance(officerId: string) {
+  return request<{ performance: OfficerPerformance }>(`/feedback/officer/${encodeURIComponent(officerId)}/performance`, {
+    method: "GET",
+  });
+}
+
+// Complaint Analytics
+export type ComplaintAnalytics = {
+  totalComplaints: number;
+  byStatus: Record<string, number>;
+  byCategory: Record<string, number>;
+  byPriority: Record<string, number>;
+  avgResolutionTime: number;
+  satisfactionRating: number;
+  feedback: Array<{ complaintId: string; rating: number; comment?: string; date: string }>;
+  escalations: number;
+  resolutionRate: number;
+  monthlyTrend: Array<{ month: string; count: number; resolved: number }>;
+};
+
+export function getComplaintAnalytics() {
+  return request<{ analytics: ComplaintAnalytics }>("/complaints/analytics/personal", {
+    method: "GET",
+  });
+}

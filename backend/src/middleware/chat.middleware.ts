@@ -4,12 +4,13 @@ import { AppError } from "../utils/errors.js";
 
 export const requireChatAccess: RequestHandler = async (req, _res, next) => {
   try {
-    const roomId = req.params.roomId || req.params.complaintId;
+    const rawRoomId = req.params.roomId ?? req.params.complaintId;
+    const roomId = Array.isArray(rawRoomId) ? rawRoomId[0] : rawRoomId;
 
     if (!roomId) return next(new AppError("Missing room identifier", 400));
 
     const room = await prisma.chatRoom.findUnique({
-      where: { id: roomId },
+      where: { id: String(roomId) },
       include: { complaint: true, participants: true },
     });
 

@@ -101,7 +101,7 @@ export async function login(req: Request, res: Response) {
   res.status(200).json({
     success: true,
     message: result.message,
-    data: { user: result.user },
+    data: { user: (result as any).user },
   });
 }
 
@@ -112,13 +112,13 @@ export async function adminLogin(req: Request, res: Response) {
   });
 
   // If a session was returned (verified admin), set auth cookies and return user
-  if ("accessToken" in result && result.accessToken && result.refreshToken) {
+    if ("accessToken" in result && result.accessToken && result.refreshToken) {
     setAuthCookies(res, result.accessToken, result.refreshToken);
 
     res.status(200).json({
       success: true,
       message: result.message,
-      data: { user: result.user },
+        data: { user: (result as any).user },
     });
     return;
   }
@@ -148,7 +148,7 @@ export async function refreshToken(req: Request, res: Response) {
   res.status(200).json({
     success: true,
     message: result.message,
-    data: { user: result.user },
+    data: { user: (result as any).user },
   });
 }
 
@@ -196,7 +196,7 @@ export async function verifyOtp(req: Request, res: Response) {
     res.status(200).json({
       success: true,
       message: result.message,
-      data: { user: result.user },
+      data: { user: (result as any).user },
     });
     return;
   }
@@ -204,7 +204,7 @@ export async function verifyOtp(req: Request, res: Response) {
   res.status(200).json({
     success: true,
     message: result.message,
-    data: { user: result.user },
+    data: { user: (result as any).user },
   });
 }
 
@@ -217,7 +217,7 @@ export async function resetCitizenPassword(req: Request, res: Response) {
   res.status(200).json({
     success: true,
     message: result.message,
-    data: { user: result.user },
+    data: { user: (result as any).user },
   });
 }
 

@@ -58,6 +58,10 @@ model User {
   uploadedAttachments ChatAttachment[]
   chatNotifications ChatNotification[]
   notifications Notification[]
+  complaintTimelines ComplaintTimeline[]
+  escalationsCreated Escalation[] @relation("EscalationCreator")
+  escalationsResolved Escalation[] @relation("EscalationResolver")
+  feedbackSubmitted Feedback[]
 
   @@map("users")
 }
@@ -92,6 +96,9 @@ model Complaint {
   timeline            Json?
   resolutionSummary   String?
   resolutionEvidence  Json?
+  latitude            Float?
+  longitude           Float?
+  slaDeadline         DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -99,6 +106,9 @@ model Complaint {
   assignedOfficer User? @relation("ComplaintAssignedOfficer", fields: [assignedOfficerId], references: [id], onDelete: SetNull)
   chatRooms ChatRoom[]
   chatMessages ChatMessage[]
+  timelines ComplaintTimeline[]
+  escalation Escalation?
+  feedback Feedback?
 
   @@index([status])
   @@index([department])
@@ -294,4 +304,68 @@ model Notification {
 
   @@index([userId])
   @@map("notifications")
+}
+
+// Complaint timeline tracking
+model ComplaintTimeline {
+  id          String   @id @default(cuid())
+  complaintId String
+  oldStatus   String?
+  newStatus   String
+  changedBy   String?
+  reason      String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  changedByUser User? @relation(fields: [changedBy], references: [id], onDelete: SetNull)
+
+  @@index([complaintId])
+  @@index([createdAt])
+  @@map("complaint_timelines")
+}
+
+// Escalation tracking
+model Escalation {
+  id          String   @id @default(cuid())
+  complaintId String   @unique
+  escalatedBy String
+  reason      String
+  level       String   @default("low") // low, medium, high, emergency
+  status      String   @default("active") // active, resolved, closed
+  resolvedBy  String?
+  resolutionNote String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  resolvedAt  DateTime?
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  escalatedByUser User @relation("EscalationCreator", fields: [escalatedBy], references: [id], onDelete: Cascade)
+  resolvedByUser User? @relation("EscalationResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([level])
+  @@index([createdAt])
+  @@map("escalations")
+}
+
+// Feedback and ratings
+model Feedback {
+  id          String   @id @default(cuid())
+  complaintId String   @unique
+  rating      Int      // 1-5 stars
+  comment     String?
+  officerRating Int?   // 1-5 stars for officer
+  overallSatisfaction Boolean @default(true)
+  suggestedImprovements String?
+  submittedBy String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  submittedByUser User @relation(fields: [submittedBy], references: [id], onDelete: Cascade)
+
+  @@index([rating])
+  @@index([createdAt])
+  @@map("feedback")
 }

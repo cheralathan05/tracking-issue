@@ -10,6 +10,7 @@ import {
   getComplaintSummary,
   listComplaints,
   updateComplaintStatus,
+  getComplaintAnalytics,
 } from "../services/complaint.service.js";
 
 export async function submitComplaint(req: Request, res: Response) {
@@ -98,4 +99,9 @@ export async function getComplaintDashboard(req: Request, res: Response) {
     role: String(req.user!.role),
   });
   res.status(200).json({ success: true, message: "Complaint summary fetched successfully", data: result });
+}
+
+export async function getAnalytics(req: Request, res: Response) {
+  const result = await getComplaintAnalytics(req.user!.id);
+  res.status(200).json({ success: true, message: "Analytics fetched successfully", data: result });
 }

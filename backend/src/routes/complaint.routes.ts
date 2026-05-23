@@ -17,11 +17,13 @@ import {
   postComplaintMessage,
   submitComplaint,
   updateComplaintProgress,
+  getAnalytics,
 } from "../controllers/complaint.controller.js";
 
 export const complaintRouter = Router();
 
 complaintRouter.post("/", requireAuth, validateBody(complaintSubmissionSchema), submitComplaint);
+complaintRouter.get("/analytics/personal", requireAuth, getAnalytics);
 complaintRouter.get("/summary", requireAuth, getComplaintDashboard);
 complaintRouter.get("/", requireAuth, getComplaints);
 complaintRouter.get("/:id", requireAuth, getComplaint);

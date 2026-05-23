@@ -20,11 +20,11 @@ export async function getRoomById(roomId: string) {
   return room;
 }
 
-export async function addParticipant(roomId: string, userId: string, role: string) {
+export async function addParticipant(roomId: string, userId: string, role: any) {
   return prisma.chatParticipant.upsert({
     where: { id: `${roomId}-${userId}` },
-    create: { id: `${roomId}-${userId}`, roomId, userId, role },
-    update: { role },
+    create: { id: `${roomId}-${userId}`, roomId, userId, role: role as any },
+    update: { role: role as any },
   });
 }
 

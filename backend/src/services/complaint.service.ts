@@ -356,7 +356,9 @@ export async function addComplaintMessage(
   try {
     const room = await chatService.getOrCreateRoomForComplaint(updated.id);
     if (room) {
-      await chatService.addParticipant(room.id, officer.id, "officer");
+      if (updated.assignedOfficer) {
+        await chatService.addParticipant(room.id, updated.assignedOfficer.id, "officer");
+      }
       if (updated.reporterUserId) {
         await chatService.addParticipant(room.id, updated.reporterUserId, "citizen");
       }
@@ -364,10 +366,10 @@ export async function addComplaintMessage(
       try {
         await chatService.sendMessage({
           roomId: room.id,
-          senderId: operator.id,
-          receiverId: officer.id,
+          senderId: viewer.id,
+          receiverId: updated.assignedOfficer ? updated.assignedOfficer.id : undefined,
           complaintId: updated.id,
-          message: `Complaint assigned to ${officer.fullName}. Chat room created.`,
+          message: input.message || `New message in complaint ${updated.grievanceId}`,
           messageType: "system",
         });
       } catch (e) {
@@ -465,13 +467,15 @@ export async function assignComplaint(
     });
   }
 
-  await createNotification(updated.assignedOfficerId, {
-    title: "New assignment received",
-    message: `You have been assigned complaint ${updated.grievanceId}.`,
-    type: "assignment",
-    priority: "high",
-    actionUrl: `/officer/complaints/${updated.id}`,
-  });
+  if (updated.assignedOfficerId) {
+    await createNotification(updated.assignedOfficerId, {
+      title: "New assignment received",
+      message: `You have been assigned complaint ${updated.grievanceId}.`,
+      type: "assignment",
+      priority: "high",
+      actionUrl: `/officer/complaints/${updated.id}`,
+    });
+  }
 
   await createNotificationsForRole("admin", {
     title: "Complaint assigned",
@@ -596,4 +600,82 @@ export async function getComplaintSummary(viewer: { id: string; role: string }) 
     escalated,
     total: submitted + assigned + inProgress + resolved + escalated,
   };
+}
+
+/**
+ * Get detailed analytics for a citizen's complaints including feedback
+ */
+export async function getComplaintAnalytics(citizenId: string) {
+  const complaints = await prisma.complaint.findMany({
+    where: { reporterUserId: citizenId },
+    include: {
+      feedback: true,
+      assignedOfficer: { select: officerSummarySelect },
+      escalation: true,
+      timelines: { orderBy: { createdAt: "asc" } },
+    },
+  });
+
+  // Calculate metrics
+  const stats = {
+    totalComplaints: complaints.length,
+    byStatus: {} as Record<string, number>,
+    byCategory: {} as Record<string, number>,
+    byPriority: {} as Record<string, number>,
+    avgResolutionTime: 0,
+    satisfactionRating: 0,
+    feedback: [] as any[],
+    escalations: 0,
+    resolutionRate: 0,
+    monthlyTrend: [] as Array<{ month: string; count: number; resolved: number }>,
+  };
+
+  // Count by status
+  complaints.forEach((c) => {
+    stats.byStatus[c.status] = (stats.byStatus[c.status] || 0) + 1;
+    stats.byCategory[c.category] = (stats.byCategory[c.category] || 0) + 1;
+    stats.byPriority[c.priority] = (stats.byPriority[c.priority] || 0) + 1;
+  });
+
+  // Calculate resolution time
+  const resolved = complaints.filter((c) => c.status === "Resolved");
+  if (resolved.length > 0) {
+    const avgMs = resolved.reduce((sum, c) => {
+      const createdTime = new Date(c.createdAt).getTime();
+      const resolvedTime = new Date(c.updatedAt).getTime();
+      return sum + (resolvedTime - createdTime);
+    }, 0) / resolved.length;
+    stats.avgResolutionTime = Math.round(avgMs / 1000 / 60 / 60); // hours
+    stats.resolutionRate = (resolved.length / complaints.length) * 100;
+  }
+
+  // Feedback stats
+  const feedbackRecords = complaints.filter((c) => c.feedback);
+  if (feedbackRecords.length > 0) {
+    stats.satisfactionRating = feedbackRecords.reduce((sum, c) => sum + (c.feedback?.rating || 0), 0) / feedbackRecords.length;
+    stats.feedback = feedbackRecords.map((c) => ({
+      complaintId: c.grievanceId,
+      rating: c.feedback?.rating,
+      comment: c.feedback?.comment,
+      date: c.feedback?.createdAt,
+    }));
+  }
+
+  // Escalations count
+  stats.escalations = complaints.filter((c) => c.escalation).length;
+
+  // Monthly trend
+  const monthlyMap = new Map<string, { count: number; resolved: number }>();
+  complaints.forEach((c) => {
+    const month = c.createdAt.toISOString().substring(0, 7);
+    const current = monthlyMap.get(month) || { count: 0, resolved: 0 };
+    current.count++;
+    if (c.status === "Resolved") current.resolved++;
+    monthlyMap.set(month, current);
+  });
+  stats.monthlyTrend = Array.from(monthlyMap.entries())
+    .sort()
+    .map(([month, data]) => ({ month, ...data }));
+
+  return { analytics: stats };
 }
