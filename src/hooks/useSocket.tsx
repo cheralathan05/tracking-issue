@@ -23,7 +23,11 @@ export function useSocket(url = resolveSocketUrl(), enabled = true) {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    if (!enabled) {
+    // Only auto-connect if explicitly enabled AND an auth cookie exists (dev cookie name: smartgov_access)
+    const hasAuthCookie = typeof document !== "undefined" && document.cookie.includes("smartgov_access=");
+    const shouldConnect = Boolean(enabled && hasAuthCookie);
+
+    if (!shouldConnect) {
       socketRef.current?.disconnect();
       socketRef.current = null;
       return;

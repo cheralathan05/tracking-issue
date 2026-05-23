@@ -23,7 +23,6 @@ const nav = [
   { to: "/escalations", label: "Escalated", icon: AlertTriangle },
   { to: "/notifications", label: "Notifications", icon: Bell },
   { to: "/chat", label: "Chat Support", icon: MessageSquare },
-  { to: "/reports", label: "Reports", icon: BarChart3 },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 

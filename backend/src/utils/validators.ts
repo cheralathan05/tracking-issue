@@ -236,6 +236,32 @@ export const complaintQuerySchema = z.object({
   summaryOnly: z.preprocess((value) => value === true || value === "true", z.boolean()).optional().default(false),
 });
 
+export const duplicateComplaintCheckSchema = z.object({
+  title: textSchema.min(6),
+  description: textSchema.min(20),
+  category: complaintCategorySchema.optional(),
+  city: z.string().trim().optional(),
+  district: z.string().trim().optional(),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
+});
+
+export const complaintLiveFeedQuerySchema = z.object({
+  limit: z.coerce.number().int().positive().max(100).optional().default(40),
+});
+
+export const complaintMapQuerySchema = z.object({
+  status: complaintStatusSchema.optional(),
+  limit: z.coerce.number().int().positive().max(300).optional().default(120),
+  latitude: z.coerce.number().optional(),
+  longitude: z.coerce.number().optional(),
+  radiusKm: z.coerce.number().positive().max(100).optional().default(5),
+});
+
+export const complaintAssistantQuerySchema = z.object({
+  question: z.string().trim().min(3).max(800),
+});
+
 export const adminUserQuerySchema = z.object({
   scope: z.enum(["all", "citizen", "officer", "admin"]).optional().default("all"),
   verification: z.enum(["all", "verified", "pending"]).optional().default("all"),
@@ -278,5 +304,9 @@ export type ComplaintMessageInput = z.infer<typeof complaintMessageSchema>;
 export type OfficerInvitationInput = z.infer<typeof officerInvitationSchema>;
 export type AcceptOfficerInvitationInput = z.infer<typeof acceptOfficerInvitationSchema>;
 export type ComplaintQueryInput = z.infer<typeof complaintQuerySchema>;
+export type DuplicateComplaintCheckInput = z.infer<typeof duplicateComplaintCheckSchema>;
+export type ComplaintLiveFeedQueryInput = z.infer<typeof complaintLiveFeedQuerySchema>;
+export type ComplaintMapQueryInput = z.infer<typeof complaintMapQuerySchema>;
+export type ComplaintAssistantQueryInput = z.infer<typeof complaintAssistantQuerySchema>;
 export type AdminUserQueryInput = z.infer<typeof adminUserQuerySchema>;
 export type AdminUserUpdateInput = z.infer<typeof adminUserUpdateSchema>;

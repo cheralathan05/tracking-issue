@@ -194,11 +194,7 @@ function DashboardPage() {
                   <MessageSquare className="mr-1.5 h-4 w-4" /> Open support chat
                 </Link>
               </Button>
-              <Button asChild variant="ghost" className="text-primary-foreground hover:bg-white/10 hover:text-primary-foreground">
-                <Link to="/reports">
-                  <TrendingUp className="mr-1.5 h-4 w-4" /> View reports
-                </Link>
-              </Button>
+              
             </div>
           </div>
 
@@ -389,7 +385,7 @@ function DashboardPage() {
                 { to: "/complaints", label: "Track complaints", icon: FileSearch },
                 { to: "/notifications", label: "Review alerts", icon: Bell },
                 { to: "/chat", label: "Open support chat", icon: MessageSquare },
-                { to: "/reports", label: "Inspect reports", icon: TrendingUp },
+                
               ].map((action) => (
                 <Link key={action.label} to={action.to} className="group flex items-center justify-between rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary/40 hover:shadow-sm">
                   <div className="flex items-center gap-3">

@@ -41,7 +41,6 @@ import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
 import { Route as AdminAssignmentRouteImport } from './routes/admin.assignment'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
-import { Route as AppReportsRouteImport } from './routes/_app.reports'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppEscalationsRouteImport } from './routes/_app.escalations'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
@@ -213,11 +212,6 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
-const AppReportsRoute = AppReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppNotificationsRoute = AppNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -291,7 +285,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/escalations': typeof AppEscalationsRoute
   '/notifications': typeof AppNotificationsRoute
-  '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/assignment': typeof AdminAssignmentRoute
@@ -334,7 +327,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/escalations': typeof AppEscalationsRoute
   '/notifications': typeof AppNotificationsRoute
-  '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/assignment': typeof AdminAssignmentRoute
@@ -381,7 +373,6 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/escalations': typeof AppEscalationsRoute
   '/_app/notifications': typeof AppNotificationsRoute
-  '/_app/reports': typeof AppReportsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/assignment': typeof AdminAssignmentRoute
@@ -428,7 +419,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/escalations'
     | '/notifications'
-    | '/reports'
     | '/settings'
     | '/admin/analytics'
     | '/admin/assignment'
@@ -471,7 +461,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/escalations'
     | '/notifications'
-    | '/reports'
     | '/settings'
     | '/admin/analytics'
     | '/admin/assignment'
@@ -517,7 +506,6 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/escalations'
     | '/_app/notifications'
-    | '/_app/reports'
     | '/_app/settings'
     | '/admin/analytics'
     | '/admin/assignment'
@@ -794,13 +782,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/reports': {
-      id: '/_app/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof AppReportsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/notifications': {
       id: '/_app/notifications'
       path: '/notifications'
@@ -886,7 +867,6 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppEscalationsRoute: typeof AppEscalationsRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
-  AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppComplaintsIdRoute: typeof AppComplaintsIdRoute
   AppComplaintsNewRoute: typeof AppComplaintsNewRoute
@@ -898,7 +878,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppEscalationsRoute: AppEscalationsRoute,
   AppNotificationsRoute: AppNotificationsRoute,
-  AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppComplaintsIdRoute: AppComplaintsIdRoute,
   AppComplaintsNewRoute: AppComplaintsNewRoute,

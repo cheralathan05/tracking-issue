@@ -53,7 +53,10 @@ export const Route = createFileRoute("/_app/chat")({
     }, []);
 
     useEffect(() => {
-      const socket = io({ withCredentials: true });
+      // Connect to backend socket on port 4000 (dev). Use current host with port 4000.
+      // In production this should use the configured API origin (env var).
+      const backendOrigin = typeof location !== 'undefined' ? `${location.protocol}//${location.hostname}:4000` : undefined;
+      const socket = io(backendOrigin, { withCredentials: true });
       socketRef.current = socket;
 
       socket.on("connect_error", (err) => {
