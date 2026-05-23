@@ -259,6 +259,7 @@ export async function listComplaints(
       select: {
         id: true,
         grievanceId: true,
+        reporterUserId: true,
         reporterName: true,
         title: true,
         category: true,
@@ -706,7 +707,7 @@ export async function getComplaintAnalytics(citizenId: string) {
   }
 
   // Feedback stats
-  const feedbackRecords = complaints.filter((c) => c.feedback);
+  const feedbackRecords: any[] = complaints.filter((c) => Boolean((c as any).feedback));
   if (feedbackRecords.length > 0) {
     stats.satisfactionRating = feedbackRecords.reduce((sum, c) => sum + (c.feedback?.rating || 0), 0) / feedbackRecords.length;
     stats.feedback = feedbackRecords.map((c) => ({

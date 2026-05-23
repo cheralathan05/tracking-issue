@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 
 function resolveSocketUrl() {
@@ -10,7 +10,7 @@ function resolveSocketUrl() {
 
   if (typeof window !== "undefined") {
     if (window.location.hostname === "localhost") {
-      return "http://localhost:4000";
+      return "http://localhost:4004";
     }
 
     return window.location.origin;
@@ -19,13 +19,18 @@ function resolveSocketUrl() {
   return "/";
 }
 
+function getCookie(name: string) {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
 export function useSocket(url = resolveSocketUrl(), enabled = true) {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    // Only auto-connect if explicitly enabled AND an auth cookie exists (dev cookie name: smartgov_access)
-    const hasAuthCookie = typeof document !== "undefined" && document.cookie.includes("smartgov_access=");
-    const shouldConnect = Boolean(enabled && hasAuthCookie);
+    const token = getCookie("smartgov_access");
+    const shouldConnect = Boolean(enabled && token);
 
     if (!shouldConnect) {
       socketRef.current?.disconnect();
@@ -37,10 +42,27 @@ export function useSocket(url = resolveSocketUrl(), enabled = true) {
       transports: ["websocket"],
       autoConnect: false,
       reconnection: false,
+      auth: { token },
+    });
+
+    s.on("connect_error", (err: any) => {
+      // if auth problems, disconnect to avoid noisy reconnection loops
+      if (err && (err.message === "Missing token" || err.message === "Unauthorized")) {
+        s.disconnect();
+      }
     });
 
     s.connect();
     socketRef.current = s;
+
+    s.on("connect", () => {
+      try {
+        const globalUser = (window as any).__SMARTGOV_USER;
+        if (globalUser && (globalUser.id || globalUser.role)) {
+          s.emit("identify", { userId: globalUser.id, role: globalUser.role });
+        }
+      } catch (e) {}
+    });
 
     return () => {
       s.disconnect();
@@ -48,5 +70,19 @@ export function useSocket(url = resolveSocketUrl(), enabled = true) {
     };
   }, [url, enabled]);
 
-  return socketRef;
+  const on = useCallback((event: string, handler: (...args: any[]) => void) => {
+    socketRef.current?.on(event, handler);
+    return () => socketRef.current?.off(event, handler);
+  }, []);
+
+  const off = useCallback((event: string, handler?: (...args: any[]) => void) => {
+    if (!handler) socketRef.current?.off(event);
+    else socketRef.current?.off(event, handler);
+  }, []);
+
+  const emit = useCallback((event: string, payload?: any) => {
+    socketRef.current?.emit(event, payload);
+  }, []);
+
+  return { socketRef, on, off, emit } as const;
 }

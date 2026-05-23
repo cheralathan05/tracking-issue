@@ -168,6 +168,7 @@ export interface AdminUserListResult {
 export interface ComplaintRecord {
   id: string;
   grievanceId: string;
+  reporterUserId?: string | null;
   reporterName: string;
   reporterEmail?: string | null;
   reporterMobile?: string | null;

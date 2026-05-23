@@ -51,7 +51,7 @@ function ChatWindow({ complaintId }: { complaintId: string }) {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
-  const socketRef = useSocket();
+  const { socketRef, emit } = useSocket();
 
   useEffect(() => {
     if (!complaintId) return;
@@ -74,7 +74,7 @@ function ChatWindow({ complaintId }: { complaintId: string }) {
     void load();
     const s = socketRef.current;
     if (s) {
-      s.emit("joinRoom", roomId);
+      emit("joinRoom", roomId);
       s.on("message", (msg: any) => {
         setMessages((m) => [...m, msg]);
       });
@@ -82,7 +82,7 @@ function ChatWindow({ complaintId }: { complaintId: string }) {
     return () => {
       mounted = false;
       if (s) {
-        s.emit("leaveRoom", roomId);
+        emit("leaveRoom", roomId);
         s.off("message");
       }
     };

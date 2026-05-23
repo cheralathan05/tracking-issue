@@ -50,6 +50,32 @@ async function bootstrap() {
     });
 
     io.on("connection", (socket) => {
+      // If authentication middleware already populated user info, auto-join their rooms
+      try {
+        const user = (socket as any).data?.user;
+        if (user && user.id) {
+          socket.join(`user:${user.id}`);
+          const role = user.role;
+          if (role) {
+            socket.join(`role:${role}`);
+
+            if (role === "officer") {
+              socket.join("role:officer");
+            }
+
+            if (["super_admin", "state_admin", "district_officer", "department_officer", "admin"].includes(role)) {
+              socket.join("role:admin");
+            }
+
+            if (role === "citizen") {
+              socket.join("role:citizen");
+            }
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+
       socket.on("identify", ({ userId, role }: { userId?: string; role?: string }) => {
         if (userId) {
           socket.join(`user:${userId}`);
@@ -78,6 +104,15 @@ async function bootstrap() {
 
       socket.on("leaveRoom", (roomId: string) => {
         socket.leave(`room:${roomId}`);
+      });
+
+      socket.on("typing", ({ roomId, userName, isTyping }: { roomId?: string; userName?: string; isTyping?: boolean }) => {
+        if (!roomId) return;
+        socket.to(`room:${roomId}`).emit("typing", {
+          roomId,
+          userName,
+          isTyping: Boolean(isTyping),
+        });
       });
 
       socket.on("sendMessage", async (payload: any) => {

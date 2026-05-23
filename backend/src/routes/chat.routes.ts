@@ -5,6 +5,7 @@ import path from "path";
 import { env } from "../config/env.js";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { requireChatAccess } from "../middleware/chat.middleware.js";
+import { getSocket } from "../socket.js";
 import * as chatService from "../services/chat.service.js";
 
 export const chatRouter = Router();
@@ -50,7 +51,13 @@ chatRouter.post("/rooms/:roomId/messages", requireChatAccess, async (req, res, n
       attachment,
     });
 
-    res.json({ success: true, message: created });
+    try {
+      getSocket().to(`room:${roomId}`).emit("message", created);
+    } catch {
+      // Socket not ready; the message is still persisted.
+    }
+
+    res.json({ success: true, message: "Message sent successfully", data: { message: created } });
   } catch (err) {
     next(err);
   }
@@ -62,6 +69,16 @@ chatRouter.post("/rooms/:roomId/read", requireChatAccess, async (req, res, next)
     const roomId = Array.isArray(rawRoomId) ? rawRoomId[0] : rawRoomId;
     const userId = req.user!.id;
     await chatService.markMessagesRead(String(roomId), userId);
+
+    try {
+      getSocket().to(`room:${String(roomId)}`).emit("seen_update", {
+        roomId: String(roomId),
+        userId,
+      });
+    } catch {
+      // Socket is optional here.
+    }
+
     res.json({ success: true });
   } catch (err) {
     next(err);
@@ -86,7 +103,13 @@ chatRouter.post("/rooms/:roomId/attachments", requireChatAccess, async (req, res
       attachment: { fileUrl, fileType, uploadedBy: senderId },
     });
 
-    res.json({ success: true, message: created });
+    try {
+      getSocket().to(`room:${String(roomId)}`).emit("message", created);
+    } catch {
+      // Socket not ready; the attachment message is still persisted.
+    }
+
+    res.json({ success: true, message: "Attachment sent successfully", data: { message: created } });
   } catch (err) {
     next(err);
   }

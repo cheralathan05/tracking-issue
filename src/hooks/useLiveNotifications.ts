@@ -24,7 +24,7 @@ export function useLiveNotifications(initialUser?: AuthUser) {
   const [user, setUser] = useState<AuthUser | null>(initialUser ?? null);
   const [notifications, setNotifications] = useState<LiveNotification[]>([]);
   const [loading, setLoading] = useState(true);
-  const socketRef = useSocket(undefined, Boolean(user));
+  const { socketRef, on, emit } = useSocket(undefined, Boolean(user));
 
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.isRead).length,
@@ -97,8 +97,8 @@ export function useLiveNotifications(initialUser?: AuthUser) {
     };
 
     if (socket) {
-      socket.emit("identify", { userId: user.id, role: user.role });
-      socket.on("notification", eventHandler);
+      emit("identify", { userId: user.id, role: user.role });
+      on("notification", eventHandler);
     }
 
     return () => {
