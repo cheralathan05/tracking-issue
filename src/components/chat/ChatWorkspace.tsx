@@ -2,9 +2,6 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 import TopNavbar from './TopNavbar'
-import CinematicHero from './CinematicHero'
-import PremiumComposer from './PremiumComposer'
-import QuickActions from './QuickActions'
 import ThreadList from './ThreadList'
 import ChatArea from './ChatArea'
 import ContextPanel from './ContextPanel'
@@ -12,9 +9,6 @@ import ContextPanel from './ContextPanel'
 export default function ChatWorkspace() {
   const [selectedThread, setSelectedThread] =
     useState<string | null>('complaint-2024-001')
-
-  const [showWorkspace, setShowWorkspace] =
-    useState(false)
 
   const [unreadCount] = useState(3)
 
@@ -58,160 +52,36 @@ export default function ChatWorkspace() {
         >
 
           <AnimatePresence mode="wait">
-
-            {!showWorkspace ? (
-              /* =======================================================
-                 HERO AI EXPERIENCE
-              ======================================================= */
-              <motion.div
-                key="hero"
-                initial={{
-                  opacity: 0,
-                }}
-                animate={{
-                  opacity: 1,
-                }}
-                exit={{
-                  opacity: 0,
-                }}
-                transition={{
-                  duration: 0.45,
-                }}
+            {/* LIVE CHAT WORKSPACE */}
+            <motion.div
+              key="workspace"
+              initial={{
+                opacity: 0,
+              }}
+              animate={{
+                opacity: 1,
+              }}
+              transition={{
+                duration: 0.4,
+              }}
+              className="
+                h-full
+                overflow-hidden
+                flex
+                gap-4
+                p-4"
+            >
+              {/* GRID */}
+              <div
                 className="
-                  flex
+                  grid
                   h-full
-                  flex-col
-                  items-center
-                  justify-center
-                  overflow-y-auto
-                  px-8
-                  py-16
+                  min-h-0
+                  grid-cols-[340px_minmax(0,1fr)_380px]
+                  gap-6
+                  w-full
                 "
               >
-
-                {/* HERO */}
-                <motion.div
-                  initial={{
-                    opacity: 0,
-                    y: 24,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                  }}
-                  transition={{
-                    duration: 0.7,
-                  }}
-                  className="
-                    w-full
-                    max-w-[1200px]
-                    space-y-16
-                  "
-                >
-
-                  {/* HERO TEXT */}
-                  <div className="space-y-8 text-center">
-
-                    <CinematicHero />
-
-                  </div>
-
-                  {/* PREMIUM COMPOSER */}
-                  <motion.div
-                    initial={{
-                      opacity: 0,
-                      y: 30,
-                      scale: 0.97,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                      scale: 1,
-                    }}
-                    transition={{
-                      duration: 0.7,
-                      delay: 0.15,
-                    }}
-                    className="
-                      mx-auto
-                      w-full
-                      max-w-[950px]
-                    "
-                  >
-
-                    <PremiumComposer
-                      onCompose={() =>
-                        setShowWorkspace(true)
-                      }
-                    />
-
-                  </motion.div>
-
-                  {/* QUICK ACTIONS */}
-                  <motion.div
-                    initial={{
-                      opacity: 0,
-                      y: 20,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                    }}
-                    transition={{
-                      duration: 0.6,
-                      delay: 0.3,
-                    }}
-                    className="
-                      mx-auto
-                      w-full
-                      max-w-[950px]
-                    "
-                  >
-
-                    <QuickActions />
-
-                  </motion.div>
-
-                </motion.div>
-
-              </motion.div>
-            ) : (
-              /* =======================================================
-                 LIVE CHAT WORKSPACE
-              ======================================================= */
-              <motion.div
-                key="workspace"
-                initial={{
-                  opacity: 0,
-                }}
-                animate={{
-                  opacity: 1,
-                }}
-                exit={{
-                  opacity: 0,
-                }}
-                transition={{
-                  duration: 0.4,
-                }}
-                className="
-                  h-full
-                  overflow-hidden
-                  px-6
-                  pb-6
-                  pt-4
-                "
-              >
-
-                {/* GRID */}
-                <div
-                  className="
-                    grid
-                    h-full
-                    min-h-0
-                    grid-cols-[340px_minmax(0,1fr)_380px]
-                    gap-6
-                  "
-                >
 
                   {/* ===================================================
                      THREAD PANEL
@@ -356,9 +226,8 @@ export default function ChatWorkspace() {
                 </div>
 
               </motion.div>
-            )}
 
-          </AnimatePresence>
+            </AnimatePresence>
 
         </div>
 
