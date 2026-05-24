@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { AppError } from "../utils/errors.js";
 import * as chatService from "./chat.service.js";
+import { analyzeComplaintWithOllama } from "./ollama.service.js";
 import type {
   ComplaintAssignmentInput,
   ComplaintQueryInput,
@@ -11,6 +12,7 @@ import type {
   ComplaintSubmissionInput,
 } from "../utils/validators.js";
 import { officerSummarySelect } from "../constants/user.js";
+import { safeEmitToRole, safeEmitToUser } from "../socket.js";
 import {
   deriveDepartment,
   generateComplaintId,
@@ -18,6 +20,7 @@ import {
   pickSuggestedOfficer,
 } from "../utils/complaint-routing.js";
 import { createNotification, createNotificationsForRole } from "./notification.service.js";
+import { calculateSLADeadline } from "../constants/sla.js";
 
 const adminRoles = new Set(["super_admin", "state_admin", "district_officer", "department_officer", "admin", "officer"]);
 
@@ -136,6 +139,7 @@ export async function createComplaint(input: ComplaintSubmissionInput, reporterU
 
   const grievanceId = await ensureUniqueComplaintId();
   const now = new Date();
+  const slaDeadline = calculateSLADeadline(input.priority, input.category);
   const timeline = [
     buildTimelineEntry(
       "Complaint submitted",
@@ -167,11 +171,78 @@ export async function createComplaint(input: ComplaintSubmissionInput, reporterU
       suggestedOfficerName: suggestedOfficer?.fullName ?? null,
       evidence: toJsonValue(input.evidence),
       timeline: toJsonValue(timeline),
+      slaDeadline,
     },
     include: {
       assignedOfficer: { select: officerSummarySelect },
     },
   });
+
+  void (async () => {
+    try {
+      const room = await chatService.getOrCreateRoomForComplaint(complaint.id);
+
+      if (reporterUserId) {
+        await chatService.addParticipant(room.id, reporterUserId, "citizen");
+      }
+
+      if (suggestedOfficer?.id) {
+        await chatService.addParticipant(room.id, suggestedOfficer.id, "officer");
+      }
+
+      const basePayload = {
+        complaintId: complaint.id,
+        grievanceId,
+        roomId: room.id,
+        status: complaint.status,
+        department,
+        priority: input.priority,
+        assignedOfficerId: suggestedOfficer?.id ?? null,
+        createdAt: complaint.createdAt.toISOString(),
+      };
+
+      safeEmitToRole("admin", "complaint_created", basePayload);
+      safeEmitToRole("officer", "complaint_created", basePayload);
+
+      if (reporterUserId) {
+        safeEmitToUser(reporterUserId, "complaint_created", basePayload);
+      }
+
+      const intelligence = await analyzeComplaintWithOllama({
+        title: complaint.title,
+        category: complaint.category,
+        description: complaint.description,
+        department,
+        city: complaint.city,
+        district: complaint.district,
+      });
+
+      await prisma.complaint.update({
+        where: { id: complaint.id },
+        data: {
+          assignedDepartment: intelligence.department,
+          priority: intelligence.priority,
+          timeline: toJsonValue([
+            ...timeline,
+            buildTimelineEntry(
+              "AI analysis completed",
+              "Civic Bridge AI",
+              `${intelligence.summary} Urgency: ${intelligence.urgency}. Sentiment: ${intelligence.sentiment}.`,
+            ),
+          ]),
+        },
+      });
+
+      safeEmitToRole("admin", "ai_response_stream", {
+        complaintId: complaint.id,
+        grievanceId,
+        roomId: room.id,
+        intelligence,
+      });
+    } catch {
+      // best-effort intelligence wiring; submission must remain resilient.
+    }
+  })();
 
   if (reporterUserId) {
     await createNotification(reporterUserId, {
@@ -421,13 +492,27 @@ export async function addComplaintMessage(
       }
 
       try {
-        await chatService.sendMessage({
+        const message = await chatService.sendMessage({
           roomId: room.id,
           senderId: viewer.id,
           receiverId: updated.assignedOfficer ? updated.assignedOfficer.id : undefined,
           complaintId: updated.id,
           message: input.message || `New message in complaint ${updated.grievanceId}`,
           messageType: "system",
+        });
+
+        safeEmitToRole("admin", "message_sent", {
+          complaintId: updated.id,
+          grievanceId: updated.grievanceId,
+          roomId: room.id,
+          messageId: message.id,
+        });
+
+        safeEmitToRole("officer", "message_sent", {
+          complaintId: updated.id,
+          grievanceId: updated.grievanceId,
+          roomId: room.id,
+          messageId: message.id,
         });
       } catch (e) {
         // swallow
@@ -514,6 +599,28 @@ export async function assignComplaint(
     },
   });
 
+  safeEmitToRole("admin", "officer_assigned", {
+    complaintId: updated.id,
+    grievanceId: updated.grievanceId,
+    officerId: updated.assignedOfficerId,
+    officerName: updated.assignedOfficerName,
+  });
+
+  safeEmitToRole("admin", "complaint_updated", {
+    complaintId: updated.id,
+    grievanceId: updated.grievanceId,
+    status: updated.status,
+    assignedOfficerId: updated.assignedOfficerId,
+  });
+
+  if (updated.assignedOfficerId) {
+    safeEmitToUser(updated.assignedOfficerId, "officer_assigned", {
+      complaintId: updated.id,
+      grievanceId: updated.grievanceId,
+      status: updated.status,
+    });
+  }
+
   if (updated.reporterUserId) {
     await createNotification(updated.reporterUserId, {
       title: "Officer assigned",
@@ -589,6 +696,27 @@ export async function updateComplaintStatus(
     },
   });
 
+  safeEmitToRole("admin", "status_changed", {
+    complaintId: updated.id,
+    grievanceId: updated.grievanceId,
+    status: updated.status,
+  });
+
+  safeEmitToRole("admin", "complaint_updated", {
+    complaintId: updated.id,
+    grievanceId: updated.grievanceId,
+    status: updated.status,
+    resolutionSummary: updated.resolutionSummary,
+  });
+
+  if (updated.assignedOfficerId) {
+    safeEmitToUser(updated.assignedOfficerId, "status_changed", {
+      complaintId: updated.id,
+      grievanceId: updated.grievanceId,
+      status: updated.status,
+    });
+  }
+
   if (updated.reporterUserId) {
     await createNotification(updated.reporterUserId, {
       title: "Status updated",
@@ -616,6 +744,12 @@ export async function updateComplaintStatus(
       type: "escalation",
       priority: "critical",
       actionUrl: `/admin/complaints/${updated.id}`,
+    });
+
+    safeEmitToRole("admin", "escalation_created", {
+      complaintId: updated.id,
+      grievanceId: updated.grievanceId,
+      status: updated.status,
     });
   }
 

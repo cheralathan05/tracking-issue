@@ -45,6 +45,18 @@ export async function createNotification(userId: string, payload: NotificationPa
     data: notification.data,
   });
 
+  safeEmitToUser(userId, "notification_received", {
+    id: notification.id,
+    title: notification.title,
+    message: notification.message,
+    type: notification.type,
+    priority: notification.priority,
+    isRead: notification.isRead,
+    createdAt: notification.createdAt.toISOString(),
+    actionUrl: notification.actionUrl,
+    data: notification.data,
+  });
+
   return notification;
 }
 

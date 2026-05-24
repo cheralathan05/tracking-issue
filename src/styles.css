@@ -151,10 +151,19 @@
 @layer base {
   * { border-color: var(--color-border); }
   html { font-family: var(--font-sans); }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
   body {
+    margin: 0;
+    min-height: 100%;
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-feature-settings: "cv11", "ss01";
+    overflow-x: hidden;
+    overscroll-behavior: none;
   }
   h1, h2, h3, h4 { letter-spacing: -0.02em; }
 }

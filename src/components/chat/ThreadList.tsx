@@ -49,6 +49,8 @@ interface ThreadListProps {
     threadId: string
   ) => void
   unreadCount: number
+  threads?: Thread[]
+  density?: 'default' | 'compact'
 }
 
 /* =========================================================
@@ -161,7 +163,12 @@ export default function ThreadList({
   selectedThread,
   onSelectThread,
   unreadCount,
+  threads,
+  density = 'default',
 }: ThreadListProps) {
+  const visibleThreads = threads ?? mockThreads
+  const compact = density === 'compact'
+
   return (
     <motion.div
       initial={{
@@ -182,287 +189,342 @@ export default function ThreadList({
         min-h-0
         flex-col
         overflow-hidden
-        rounded-[32px]
+        rounded-[28px]
         border
-        border-white/10
+        border-white/8
         bg-gradient-to-b
-        from-[#0B1020]/95
-        via-[#091120]/92
-        to-[#08101E]/95
-        backdrop-blur-3xl
-        shadow-[0_0_80px_rgba(59,130,246,0.08)]
+        from-white/[0.08]
+        via-white/[0.05]
+        to-white/[0.03]
+        backdrop-blur-2xl
+        shadow-[0_0_60px_rgba(59,130,246,0.1),inset_0_0_40px_rgba(59,130,246,0.05)]
       "
     >
 
       {/* =====================================================
-         BACKGROUND GLOW
+         CINEMATIC BACKGROUND GLOW
       ===================================================== */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[28px]">
 
-        <div className="absolute top-[-120px] left-[-60px] h-[260px] w-[260px] rounded-full bg-blue-500/10 blur-[120px]" />
+        <div 
+          className="
+            absolute
+            top-[-100px]
+            left-0
+            h-[300px]
+            w-[300px]
+            rounded-full
+            bg-blue-500/12
+            blur-[120px]
+          "
+        />
 
-        <div className="absolute bottom-[-120px] right-[-60px] h-[260px] w-[260px] rounded-full bg-purple-500/10 blur-[120px]" />
+        <div 
+          className="
+            absolute
+            bottom-[-100px]
+            right-0
+            h-[280px]
+            w-[280px]
+            rounded-full
+            bg-indigo-500/10
+            blur-[120px]
+          "
+        />
 
       </div>
 
       {/* =====================================================
-         HEADER
+         FIXED HEADER
       ===================================================== */}
       <div
         className="
           relative
           z-10
+          flex-shrink-0
           border-b
-          border-white/10
+          border-white/8
           bg-white/[0.03]
-          px-6
-          py-6
-          backdrop-blur-3xl
+          px-4
+          py-3
+          backdrop-blur-xl
         "
       >
 
-        {/* TOP */}
-        <div className="flex items-start justify-between gap-4">
+        {/* HEADER CONTENT */}
+        <div className={`space-y-4 ${compact ? 'space-y-3' : ''}`}>
 
-          <div>
+          {/* TOP ROW */}
+          <div className="flex items-start justify-between gap-4">
 
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex-1 min-w-0">
 
-              <span
+              <div className="flex items-center gap-2 flex-wrap">
+
+                <span
+                  className="
+                    rounded-full
+                    border
+                    border-blue-500/30
+                    bg-blue-500/10
+                    px-3
+                    py-1
+                    text-[10px]
+                    font-semibold
+                    uppercase
+                    tracking-[0.3em]
+                    text-blue-300
+                  "
+                >
+                  Threads
+                </span>
+
+                <span
+                  className="
+                    flex
+                    items-center
+                    gap-1.5
+                    rounded-full
+                    border
+                    border-emerald-500/30
+                    bg-emerald-500/10
+                    px-3
+                    py-1
+                    text-[10px]
+                    font-semibold
+                    uppercase
+                    tracking-[0.3em]
+                    text-emerald-300
+                  "
+                >
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Live
+                </span>
+
+              </div>
+
+              <h2
                 className="
-                  rounded-full
-                  border
-                  border-blue-500/20
-                  bg-blue-500/10
-                  px-3
-                  py-1
-                  text-[11px]
-                  uppercase
-                  tracking-[0.25em]
-                  text-blue-300
+                  mt-3
+                  text-[22px]
+                  font-black
+                  tracking-tight
+                  text-white
+                  leading-tight
                 "
               >
-                Realtime Threads
-              </span>
+                Active Complaints
+              </h2>
 
-              <span
-                className="
-                  flex
-                  items-center
-                  gap-2
-                  rounded-full
-                  border
-                  border-emerald-500/20
-                  bg-emerald-500/10
-                  px-3
-                  py-1
-                  text-xs
-                  text-emerald-300
-                "
-              >
-                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                Live
-              </span>
+              <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
+                Real-time complaint communication
+              </p>
 
             </div>
 
-            <h2
+            {/* UNREAD BADGE */}
+            <motion.div
+              animate={{
+                boxShadow: [
+                  '0 0 8px rgba(249,115,22,0.15)',
+                  '0 0 20px rgba(249,115,22,0.35)',
+                  '0 0 8px rgba(249,115,22,0.15)',
+                ],
+              }}
+              transition={{
+                duration: 2.5,
+                repeat: Infinity,
+              }}
               className="
-                mt-5
-                text-3xl
-                font-black
-                tracking-tight
-                text-white
+                flex
+                h-12
+                min-w-[60px]
+                flex-col
+                items-center
+                justify-center
+                rounded-xl
+                border
+                border-orange-500/25
+                bg-gradient-to-br
+                from-orange-500/15
+                to-orange-500/5
+                px-3
+                flex-shrink-0
               "
             >
-              Complaint Threads
-            </h2>
 
-            <p className="mt-2 text-sm text-slate-400">
-              Unified complaint communication
-              workspace.
-            </p>
+              <p className="text-xl font-black text-orange-300">
+                {unreadCount}
+              </p>
+
+              <p className="text-[9px] font-semibold uppercase tracking-[0.25em] text-orange-300/80">
+                Unread
+              </p>
+
+            </motion.div>
 
           </div>
-
-          {/* UNREAD */}
-          <motion.div
-            animate={{
-              boxShadow: [
-                '0 0 10px rgba(249,115,22,0.2)',
-                '0 0 25px rgba(249,115,22,0.45)',
-                '0 0 10px rgba(249,115,22,0.2)',
-              ],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-            }}
-            className="
-              flex
-              h-16
-              min-w-[70px]
-              flex-col
-              items-center
-              justify-center
-              rounded-3xl
-              border
-              border-orange-500/20
-              bg-orange-500/10
-              px-4
-            "
-          >
-
-            <p className="text-2xl font-black text-orange-300">
-              {unreadCount}
-            </p>
-
-            <p className="text-[10px] uppercase tracking-[0.2em] text-orange-200">
-              Unread
-            </p>
-
-          </motion.div>
 
         </div>
 
       </div>
 
       {/* =====================================================
-         THREADS
+         SCROLLABLE THREAD LIST
       ===================================================== */}
       <div
-        className="
+        className={`
           relative
           z-10
           flex-1
           min-h-0
           overflow-y-auto
           px-4
-          py-5
-          space-y-4
-        "
+          py-3
+          space-y-3
+          [&>*]:min-h-0
+          ${compact ? 'px-3 py-3 space-y-2' : ''}
+          [&::-webkit-scrollbar]:w-2
+          [&::-webkit-scrollbar-track]:bg-transparent
+          [&::-webkit-scrollbar-thumb]:bg-white/10
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb:hover]:bg-white/20
+        `}
       >
 
-        {mockThreads.map((thread, index) => {
-          const config =
-            statusConfig[thread.status]
+        <AnimatePresence>
+          {visibleThreads.map((thread, index) => {
+            const config =
+              statusConfig[thread.status]
 
-          const StatusIcon =
-            config.icon
+            const StatusIcon =
+              config.icon
 
-          return (
-            <motion.button
-              key={thread.id}
-              onClick={() =>
-                onSelectThread(thread.id)
-              }
-              initial={{
-                opacity: 0,
-                x: -14,
-              }}
-              animate={{
-                opacity: 1,
-                x: 0,
-              }}
-              transition={{
-                delay: index * 0.05,
-              }}
-              whileHover={{
-                scale: 1.015,
-                y: -2,
-              }}
-              whileTap={{
-                scale: 0.98,
-              }}
-              className={`
-                group
-                relative
-                w-full
-                overflow-hidden
-                rounded-[28px]
-                border
-                p-5
-                text-left
-                transition-all
-                duration-300
-                ${
-                  selectedThread === thread.id
-                    ? `
-                      border-blue-500/30
-                      bg-gradient-to-br
-                      from-blue-500/15
-                      to-indigo-500/10
-                      shadow-[0_0_40px_rgba(59,130,246,0.18)]
-                    `
-                    : `
-                      border-white/10
-                      bg-white/[0.03]
-                      hover:bg-white/[0.05]
-                    `
+            const isSelected =
+              selectedThread === thread.id
+
+            return (
+              <motion.button
+                key={thread.id}
+                onClick={() =>
+                  onSelectThread(thread.id)
                 }
-              `}
-            >
+                initial={{
+                  opacity: 0,
+                  x: -12,
+                }}
+                animate={{
+                  opacity: 1,
+                  x: 0,
+                }}
+                exit={{
+                  opacity: 0,
+                  x: -12,
+                }}
+                transition={{
+                  delay: index * 0.04,
+                  duration: 0.3,
+                }}
+                whileHover={{
+                  scale: 1.02,
+                  y: -1,
+                }}
+                whileTap={{
+                  scale: 0.98,
+                }}
+                className={`
+                  group
+                  relative
+                  w-full
+                  overflow-hidden
+                  rounded-[20px]
+                  border
+                  p-3.5
+                  text-left
+                  transition-all
+                  duration-300
+                  ${
+                    isSelected
+                      ? `
+                        border-blue-500/40
+                        bg-gradient-to-br
+                        from-blue-500/12
+                        via-blue-500/8
+                        to-indigo-500/6
+                        shadow-[0_0_30px_rgba(59,130,246,0.15),inset_0_0_30px_rgba(59,130,246,0.08)]
+                      `
+                      : `
+                        border-white/8
+                        bg-white/[0.03]
+                        hover:bg-white/[0.05]
+                        hover:border-white/12
+                      `
+                  }
+                `}
+              >
 
-              {/* ACTIVE GLOW */}
-              {selectedThread ===
-                thread.id && (
-                <motion.div
-                  layoutId="active-thread"
-                  className="
-                    absolute
-                    inset-0
-                    bg-blue-500/[0.04]
-                  "
-                  transition={{
-                    type: 'spring',
-                    bounce: 0.2,
-                  }}
-                />
-              )}
+                {/* ACTIVE INDICATOR GLOW */}
+                {isSelected && (
+                  <motion.div
+                    layoutId="active-thread-bg"
+                    className="
+                      absolute
+                      inset-0
+                      rounded-[22px]
+                      bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.08),transparent_70%)]
+                    "
+                    transition={{
+                      type: 'spring',
+                      bounce: 0.1,
+                    }}
+                  />
+                )}
 
-              {/* SIDE INDICATOR */}
-              {selectedThread ===
-                thread.id && (
-                <motion.div
-                  layoutId="active-side"
-                  className="
-                    absolute
-                    left-0
-                    top-1/2
-                    h-16
-                    w-1.5
-                    -translate-y-1/2
-                    rounded-r-full
-                    bg-blue-400
-                  "
-                />
-              )}
+                {/* ACTIVE LEFT BORDER */}
+                {isSelected && (
+                  <motion.div
+                    layoutId="active-border"
+                    className="
+                      absolute
+                      left-0
+                      top-0
+                      bottom-0
+                      w-1
+                      rounded-r-full
+                      bg-gradient-to-b
+                      from-blue-400
+                      via-blue-500
+                      to-indigo-500
+                    "
+                    transition={{
+                      type: 'spring',
+                      bounce: 0.2,
+                    }}
+                  />
+                )}
 
-              {/* CONTENT */}
-              <div className="relative z-10">
+                {/* CONTENT */}
+                <div className="relative z-10 space-y-3">
 
-                {/* =========================================
-                   TOP
-                ========================================= */}
-                <div className="flex items-start justify-between gap-4">
+                  {/* =========================================
+                     TOP: ID & STATUS
+                  ========================================= */}
+                  <div className="flex items-center justify-between gap-3">
 
-                  {/* LEFT */}
-                  <div className="min-w-0 flex-1">
-
-                    <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 min-w-0">
 
                       <span
                         className="
                           rounded-full
                           border
-                          border-blue-500/20
+                          border-blue-500/30
                           bg-blue-500/10
-                          px-3
+                          px-2.5
                           py-1
-                          text-[11px]
-                          font-medium
-                          tracking-[0.15em]
+                          text-[10px]
+                          font-semibold
                           text-blue-300
+                          flex-shrink-0
                         "
                       >
                         {thread.complaintId}
@@ -472,36 +534,38 @@ export default function ThreadList({
                         className={`
                           flex
                           items-center
-                          gap-2
+                          gap-1
                           rounded-full
                           border
-                          px-3
-                          py-1
-                          text-xs
+                          px-2.5
+                          rounded-[20px]
+                          text-[10px]
+                          p-3.5
+                          flex-shrink-0
                           ${
                             config.color ===
                             'blue'
                               ? `
-                                border-blue-500/20
+                                border-blue-500/30
                                 bg-blue-500/10
                                 text-blue-300
                               `
                               : config.color ===
                                   'orange'
                                 ? `
-                                  border-orange-500/20
+                                  border-orange-500/30
                                   bg-orange-500/10
                                   text-orange-300
                                 `
                                 : config.color ===
                                     'red'
                                   ? `
-                                    border-red-500/20
+                                    border-red-500/30
                                     bg-red-500/10
                                     text-red-300
                                   `
                                   : `
-                                    border-emerald-500/20
+                                    border-emerald-500/30
                                     bg-emerald-500/10
                                     text-emerald-300
                                   `
@@ -511,170 +575,121 @@ export default function ThreadList({
 
                         <StatusIcon className="h-3 w-3" />
 
-                        {config.label}
+                        <span>{config.label}</span>
 
                       </div>
 
                     </div>
 
-                    {/* TITLE */}
+                    {/* PRIORITY DOT */}
+                    <div
+                      className={`
+                        h-2.5
+                        w-2.5
+                        flex-shrink-0
+                        rounded-full
+                        ${
+                          thread.priority ===
+                          'critical'
+                            ? 'bg-red-400 shadow-[0_0_12px_rgba(248,113,113,0.4)]'
+                            : thread.priority ===
+                                'high'
+                              ? 'bg-orange-400 shadow-[0_0_12px_rgba(251,146,60,0.3)]'
+                              : thread.priority ===
+                                  'medium'
+                                ? 'bg-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.3)]'
+                                : 'bg-slate-400'
+                        }
+                      `}
+                    />
+
+                  </div>
+
+                  {/* =========================================
+                     TITLE
+                  ========================================= */}
+                  <div>
+
                     <h3
                       className="
-                        mt-4
                         truncate
-                        text-lg
+                        text-sm
                         font-bold
                         text-white
                         transition-colors
                         group-hover:text-blue-200
                       "
+                      title={thread.title}
                     >
                       {thread.title}
                     </h3>
 
                   </div>
 
-                  {/* PRIORITY */}
-                  <div
-                    className={`
-                      h-3
-                      w-3
-                      flex-shrink-0
-                      rounded-full
-                      ${
-                        thread.priority ===
-                        'critical'
-                          ? 'bg-red-400'
-                          : thread.priority ===
-                              'high'
-                            ? 'bg-orange-400'
-                            : thread.priority ===
-                                'medium'
-                              ? 'bg-blue-400'
-                              : 'bg-slate-400'
-                      }
-                    `}
-                  />
+                  {/* =========================================
+                     METADATA: DEPARTMENT & DISTRICT
+                  ========================================= */}
+                  <div className="flex items-center gap-2 text-[10px] text-slate-400">
 
-                </div>
-
-                {/* =========================================
-                   TAGS
-                ========================================= */}
-                <div className="mt-5 flex flex-wrap gap-3">
-
-                  <Tag
-                    icon={Building2}
-                    label={thread.department}
-                    color="blue"
-                  />
-
-                  <Tag
-                    icon={MapPin}
-                    label={thread.district}
-                    color="slate"
-                  />
-
-                </div>
-
-                {/* =========================================
-                   MESSAGE
-                ========================================= */}
-                <div
-                  className="
-                    mt-5
-                    rounded-2xl
-                    border
-                    border-white/5
-                    bg-white/[0.03]
-                    p-4
-                  "
-                >
-
-                  <div className="flex items-start gap-3">
-
-                    <div
-                      className="
-                        flex
-                        h-10
-                        w-10
-                        flex-shrink-0
-                        items-center
-                        justify-center
-                        rounded-2xl
-                        bg-indigo-500/10
-                      "
-                    >
-
-                      <MessageSquare className="h-4 w-4 text-indigo-300" />
-
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Building2 className="h-3 w-3 flex-shrink-0 text-blue-400/60" />
+                      <span className="truncate">{thread.department}</span>
                     </div>
 
-                    <div className="min-w-0 flex-1">
+                    <span className="text-white/20">•</span>
 
-                      <p
-                        className="
-                          line-clamp-2
-                          break-words
-                          text-sm
-                          leading-7
-                          text-slate-300
-                        "
-                      >
-                        {thread.lastMessage}
-                      </p>
-
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <MapPin className="h-3 w-3 flex-shrink-0 text-blue-400/60" />
+                      <span className="truncate">{thread.district}</span>
                     </div>
 
                   </div>
 
-                </div>
+                  {/* =========================================
+                     OFFICER & MESSAGE PREVIEW
+                  ========================================= */}
+                  <div
+                    className="
+                      rounded-[16px]
+                      border
+                      border-white/6
+                      bg-white/[0.02]
+                      p-3
+                      space-y-2
+                    "
+                  >
 
-                {/* =========================================
-                   FOOTER
-                ========================================= */}
-                <div
-                  className="
-                    mt-5
-                    flex
-                    items-center
-                    justify-between
-                    gap-4
-                  "
-                >
+                    {/* OFFICER */}
+                    <div className="flex items-center gap-2.5">
 
-                  {/* OFFICER */}
-                  <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className="
+                          flex
+                          h-8
+                          w-8
+                          flex-shrink-0
+                          items-center
+                          justify-center
+                          rounded-full
+                          bg-gradient-to-br
+                          from-blue-400
+                          to-indigo-600
+                          font-bold
+                          text-xs
+                          text-white
+                        "
+                      >
+                        {thread.avatar}
+                      </div>
 
-                    <div
-                      className="
-                        flex
-                        h-11
-                        w-11
-                        flex-shrink-0
-                        items-center
-                        justify-center
-                        rounded-2xl
-                        bg-gradient-to-br
-                        from-blue-400
-                        to-indigo-600
-                        font-black
-                        text-white
-                      "
-                    >
-                      {thread.avatar}
-                    </div>
+                      <div className="min-w-0 flex-1">
 
-                    <div className="min-w-0">
-
-                      <p className="text-sm font-medium text-white truncate">
-                        {thread.officer}
-                      </p>
-
-                      <div className="mt-1 flex items-center gap-2">
+                        <p className="text-xs font-semibold text-white">
+                          {thread.officer}
+                        </p>
 
                         {thread.isTyping ? (
-                          <div className="flex gap-1">
+                          <div className="flex gap-1 mt-0.5">
 
                             {[0, 1, 2].map(
                               (dot) => (
@@ -683,7 +698,7 @@ export default function ThreadList({
                                   animate={{
                                     y: [
                                       0,
-                                      -4,
+                                      -2,
                                       0,
                                     ],
                                   }}
@@ -691,13 +706,13 @@ export default function ThreadList({
                                     delay:
                                       dot *
                                       0.1,
-                                    duration: 0.7,
+                                    duration: 0.6,
                                     repeat:
                                       Infinity,
                                   }}
                                   className="
-                                    h-1.5
-                                    w-1.5
+                                    h-1
+                                    w-1
                                     rounded-full
                                     bg-blue-400
                                   "
@@ -707,7 +722,7 @@ export default function ThreadList({
 
                           </div>
                         ) : (
-                          <p className="text-xs text-slate-500">
+                          <p className="text-[9px] text-slate-500 mt-0.5">
                             {
                               thread.lastMessageTime
                             }
@@ -718,146 +733,89 @@ export default function ThreadList({
 
                     </div>
 
-                  </div>
+                    {/* BOTTOM ROW: SLA & UNREAD */}
+                    <div className="flex items-center justify-between gap-2 pt-1">
 
-                  {/* RIGHT */}
-                  <div className="flex items-center gap-3">
-
-                    {/* SLA */}
-                    {thread.slaRemaining !==
-                      'Closed' && (
-                      <div
-                        className="
-                          flex
-                          items-center
-                          gap-2
-                          rounded-full
-                          border
-                          border-orange-500/20
-                          bg-orange-500/10
-                          px-3
-                          py-2
-                        "
-                      >
-
-                        <Clock3 className="h-3.5 w-3.5 text-orange-300" />
-
-                        <span className="text-xs font-medium text-orange-300">
-                          {
-                            thread.slaRemaining
-                          }
-                        </span>
-
-                      </div>
-                    )}
-
-                    {/* UNREAD */}
-                    <AnimatePresence>
-
-                      {thread.unreadCount >
-                        0 && (
-                        <motion.div
-                          initial={{
-                            scale: 0,
-                          }}
-                          animate={{
-                            scale: 1,
-                          }}
-                          exit={{
-                            scale: 0,
-                          }}
+                      {/* SLA */}
+                      {thread.slaRemaining !==
+                        'Closed' && (
+                        <div
                           className="
                             flex
-                            h-8
-                            min-w-[32px]
                             items-center
-                            justify-center
+                            gap-1.5
                             rounded-full
-                            bg-gradient-to-r
-                            from-orange-500
-                            to-red-500
-                            px-2
-                            text-xs
-                            font-bold
-                            text-white
+                            border
+                            border-orange-500/25
+                            bg-orange-500/8
+                            px-2.5
+                            py-1
                           "
                         >
-                          {
-                            thread.unreadCount
-                          }
-                        </motion.div>
+
+                          <Clock3 className="h-3 w-3 text-orange-300" />
+
+                          <span className="text-[9px] font-semibold text-orange-300">
+                            {
+                              thread.slaRemaining
+                            }
+                          </span>
+
+                        </div>
                       )}
 
-                    </AnimatePresence>
+                      {/* UNREAD BADGE */}
+                      <AnimatePresence>
 
-                    {/* ARROW */}
-                    <ChevronRight
-                      className="
-                        h-5
-                        w-5
-                        text-slate-500
-                        transition-transform
-                        duration-300
-                        group-hover:translate-x-1
-                      "
-                    />
+                        {thread.unreadCount >
+                          0 && (
+                          <motion.div
+                            initial={{
+                              scale: 0,
+                            }}
+                            animate={{
+                              scale: 1,
+                            }}
+                            exit={{
+                              scale: 0,
+                            }}
+                            className="
+                              flex
+                              h-6
+                              min-w-[24px]
+                              items-center
+                              justify-center
+                              rounded-full
+                              bg-gradient-to-r
+                              from-orange-500
+                              to-red-500
+                              px-1.5
+                              text-[10px]
+                              font-bold
+                              text-white
+                            "
+                          >
+                            {
+                              thread.unreadCount
+                            }
+                          </motion.div>
+                        )}
+
+                      </AnimatePresence>
+
+                    </div>
 
                   </div>
 
                 </div>
 
-              </div>
-
-            </motion.button>
-          )
-        })}
+              </motion.button>
+            )
+          })}
+        </AnimatePresence>
 
       </div>
 
     </motion.div>
-  )
-}
-
-/* =========================================================
-   TAG
-========================================================= */
-
-function Tag({
-  icon: Icon,
-  label,
-  color,
-}: any) {
-  return (
-    <div
-      className={`
-        flex
-        items-center
-        gap-2
-        rounded-full
-        border
-        px-3
-        py-2
-        text-xs
-        ${
-          color === 'blue'
-            ? `
-              border-blue-500/20
-              bg-blue-500/10
-              text-blue-300
-            `
-            : `
-              border-white/10
-              bg-white/[0.03]
-              text-slate-300
-            `
-        }
-      `}
-    >
-
-      <Icon className="h-3.5 w-3.5" />
-
-      <span>{label}</span>
-
-    </div>
   )
 }

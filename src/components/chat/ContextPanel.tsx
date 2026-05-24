@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  User,
   MapPin,
   Clock3,
   AlertTriangle,
@@ -21,17 +20,23 @@ import {
 
 import { useState } from 'react'
 
+import type { ComplaintRecord } from '@/lib/smartgov-api'
+
 interface ContextPanelProps {
   threadId: string
+  complaint?: ComplaintRecord | null
 }
 
 export default function ContextPanel({
   threadId,
+  complaint,
 }: ContextPanelProps) {
   const [expandedSections, setExpandedSections] =
     useState<Record<string, boolean>>({
       details: true,
-      history: true,
+      citizen: true,
+      officer: true,
+      escalation: true,
       insights: true,
       evidence: true,
     })
@@ -54,7 +59,8 @@ export default function ContextPanel({
         x: 0,
       }}
       transition={{
-        duration: 0.45,
+        duration: 0.5,
+        delay: 0.08,
       }}
       className="
         relative
@@ -63,118 +69,145 @@ export default function ContextPanel({
         min-h-0
         flex-col
         overflow-hidden
-        rounded-[32px]
+        rounded-[28px]
         border
-        border-white/10
+        border-white/8
         bg-gradient-to-b
-        from-[#0B1020]/95
-        via-[#0A1122]/90
-        to-[#09101F]/95
-        backdrop-blur-3xl
-        shadow-[0_0_80px_rgba(59,130,246,0.08)]
+        from-white/[0.08]
+        via-white/[0.05]
+        to-white/[0.03]
+        backdrop-blur-2xl
+        shadow-[0_0_60px_rgba(59,130,246,0.1),inset_0_0_40px_rgba(59,130,246,0.05)]
       "
     >
 
-      {/* BACKGROUND GLOW */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* =====================================================
+         BACKGROUND GLOW
+      ===================================================== */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[28px]">
 
-        <div className="absolute top-[-120px] right-[-60px] h-[220px] w-[220px] rounded-full bg-blue-500/10 blur-[100px]" />
+        <div 
+          className="
+            absolute
+            top-[-120px]
+            right-[-80px]
+            h-[350px]
+            w-[350px]
+            rounded-full
+            bg-blue-500/12
+            blur-[130px]
+          "
+        />
 
-        <div className="absolute bottom-[-120px] left-[-60px] h-[220px] w-[220px] rounded-full bg-purple-500/10 blur-[100px]" />
+        <div 
+          className="
+            absolute
+            bottom-[-150px]
+            left-[-80px]
+            h-[320px]
+            w-[320px]
+            rounded-full
+            bg-indigo-500/10
+            blur-[130px]
+          "
+        />
 
       </div>
 
-      {/* HEADER */}
+      {/* =====================================================
+         FIXED HEADER
+      ===================================================== */}
       <div
         className="
           relative
           z-10
+          flex-shrink-0
           border-b
-          border-white/10
+          border-white/8
           bg-white/[0.03]
-          px-6
-          py-6
-          backdrop-blur-3xl
+          px-4
+          py-4
+          backdrop-blur-xl
         "
       >
 
-        <div className="flex items-start justify-between">
+        <div className="space-y-4">
 
-          <div>
+          {/* BADGES */}
+          <div className="flex items-center gap-2 flex-wrap">
 
-            <div className="flex items-center gap-3 flex-wrap">
-
-              <span
-                className="
-                  rounded-full
-                  border
-                  border-blue-500/20
-                  bg-blue-500/10
-                  px-3
-                  py-1
-                  text-[11px]
-                  uppercase
-                  tracking-[0.25em]
-                  text-blue-300
-                "
-              >
-                AI Context Panel
-              </span>
-
-              <span
-                className="
-                  flex
-                  items-center
-                  gap-2
-                  rounded-full
-                  border
-                  border-emerald-500/20
-                  bg-emerald-500/10
-                  px-3
-                  py-1
-                  text-xs
-                  text-emerald-300
-                "
-              >
-                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                Live
-              </span>
-
-            </div>
-
-            <h2
+            <span
               className="
-                mt-5
-                text-3xl
-                font-black
-                tracking-tight
-                text-white
+                rounded-full
+                border
+                border-blue-500/30
+                bg-blue-500/10
+                px-3
+                py-1
+                text-[10px]
+                font-semibold
+                uppercase
+                tracking-[0.3em]
+                text-blue-300
               "
             >
-              Complaint Intelligence
-            </h2>
+              Context Panel
+            </span>
 
-            <p
+            <span
               className="
-                mt-2
-                text-sm
-                leading-7
-                text-slate-400
+                flex
+                items-center
+                gap-1.5
+                rounded-full
+                border
+                border-emerald-500/30
+                bg-emerald-500/10
+                px-3
+                py-1
+                text-[10px]
+                font-semibold
+                uppercase
+                tracking-[0.3em]
+                text-emerald-300
               "
             >
-              AI-powered complaint insights,
-              escalation tracking,
-              officer coordination,
-              and SLA monitoring.
-            </p>
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live
+            </span>
 
           </div>
+
+          {/* TITLE */}
+          <h2
+            className="
+              text-2xl
+              font-black
+              tracking-tight
+              text-white
+              leading-tight
+            "
+          >
+            Intelligence Hub
+          </h2>
+
+          <p
+            className="
+              text-xs
+              leading-relaxed
+              text-slate-400
+            "
+          >
+            AI insights & complaint details
+          </p>
 
         </div>
 
       </div>
 
-      {/* CONTENT */}
+      {/* =====================================================
+         SCROLLABLE CONTENT
+      ===================================================== */}
       <div
         className="
           relative
@@ -182,321 +215,195 @@ export default function ContextPanel({
           flex-1
           min-h-0
           overflow-y-auto
-          px-5
-          py-5
-          space-y-5
+          px-4
+          py-4
+          space-y-4
+          [&::-webkit-scrollbar]:w-2
+          [&::-webkit-scrollbar-track]:bg-transparent
+          [&::-webkit-scrollbar-thumb]:bg-white/10
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb:hover]:bg-white/20
         "
       >
 
         {/* =========================================================
-           COMPLAINT DETAILS
+           COMPLAINT DETAILS ACCORDION
         ========================================================= */}
         <SectionCard
           title="Complaint Details"
           color="blue"
           expanded={expandedSections.details}
           onToggle={() => toggleSection('details')}
+          icon={FileText}
         >
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
 
             <DetailRow
               label="Status"
-              value="Open"
-              badge="open"
+              value={complaint?.status ?? 'Open'}
+              badge={(complaint?.status ?? 'Open').toLowerCase().replace(/\s+/g, '-')}
             />
 
             <DetailRow
               label="Priority"
-              value="High"
-              badge="high"
+              value={complaint?.priority ?? 'High'}
+              badge={(complaint?.priority ?? 'High').toLowerCase()}
             />
 
             <DetailRow
               label="Department"
-              value="Public Works"
+              value={complaint?.department ?? 'Public Works'}
             />
 
             <DetailRow
               label="District"
-              value="Downtown"
+              value={complaint?.district ?? 'Downtown'}
             />
 
             <DetailRow
               label="Category"
-              value="Infrastructure"
+              value={complaint?.category ?? 'Infrastructure'}
             />
 
             <DetailRow
               label="Reported"
-              value="2 days ago"
+              value={complaint ? new Date(complaint.createdAt).toLocaleDateString() : '2 days ago'}
             />
 
           </div>
 
         </SectionCard>
 
-        {/* =========================================================
-           CITIZEN CARD
-        ========================================================= */}
-        <motion.div
-          whileHover={{
-            scale: 1.01,
-            y: -2,
-          }}
-          className="
-            rounded-[28px]
-            border
-            border-blue-500/20
-            bg-gradient-to-br
-            from-blue-500/10
-            to-indigo-500/5
-            p-5
-            backdrop-blur-3xl
-            transition-all
-            duration-300
-          "
-        >
-
-          <div className="flex items-start gap-4">
-
-            <div
-              className="
-                flex
-                h-14
-                w-14
-                items-center
-                justify-center
-                rounded-2xl
-                bg-gradient-to-br
-                from-blue-400
-                to-indigo-600
-                font-black
-                text-white
-              "
-            >
-              JD
-            </div>
-
-            <div className="min-w-0 flex-1">
-
-              <div className="flex items-center gap-2 flex-wrap">
-
-                <h3 className="text-lg font-bold text-white">
-                  John Doe
-                </h3>
-
-                <div
-                  className="
-                    flex
-                    items-center
-                    gap-1
-                    rounded-full
-                    border
-                    border-emerald-500/20
-                    bg-emerald-500/10
-                    px-2
-                    py-1
-                    text-[10px]
-                    uppercase
-                    tracking-[0.2em]
-                    text-emerald-300
-                  "
-                >
-                  <ShieldCheck className="h-3 w-3" />
-                  Verified
-                </div>
-
-              </div>
-
-              <p className="mt-1 text-sm text-slate-400">
-                Registered Citizen
-              </p>
-
-            </div>
-
-          </div>
-
-          <div className="mt-5 space-y-3 border-t border-white/10 pt-5">
-
-            <InfoRow
-              icon={MapPin}
-              value="123 Main Street, Downtown District"
-            />
-
-            <InfoRow
-              icon={Phone}
-              value="+1 (555) 123-4567"
-            />
-
-            <InfoRow
-              icon={Mail}
-              value="john.doe@email.com"
-            />
-
-          </div>
-
-        </motion.div>
+        {/* Citizen Information section removed as requested */}
 
         {/* =========================================================
-           OFFICER CARD
-        ========================================================= */}
-        <motion.div
-          whileHover={{
-            scale: 1.01,
-            y: -2,
-          }}
-          className="
-            rounded-[28px]
-            border
-            border-emerald-500/20
-            bg-gradient-to-br
-            from-emerald-500/10
-            to-teal-500/5
-            p-5
-            backdrop-blur-3xl
-            transition-all
-            duration-300
-          "
-        >
-
-          <div className="flex items-start gap-4">
-
-            <div
-              className="
-                flex
-                h-14
-                w-14
-                items-center
-                justify-center
-                rounded-2xl
-                bg-gradient-to-br
-                from-emerald-400
-                to-teal-600
-                font-black
-                text-white
-              "
-            >
-              OS
-            </div>
-
-            <div className="flex-1 min-w-0">
-
-              <div className="flex items-center gap-2 flex-wrap">
-
-                <h3 className="text-lg font-bold text-white">
-                  Officer Sarah
-                </h3>
-
-                <div className="flex items-center gap-2 text-xs text-emerald-300">
-                  <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                  Online
-                </div>
-
-              </div>
-
-              <p className="mt-1 text-sm text-slate-400">
-                Senior Case Officer
-              </p>
-
-            </div>
-
-          </div>
-
-          <div className="mt-5 space-y-3 border-t border-white/10 pt-5">
-
-            <InfoRow
-              icon={Clock3}
-              value="Assigned 2 days ago"
-            />
-
-            <InfoRow
-              icon={Globe}
-              value="Public Works Department"
-            />
-
-          </div>
-
-        </motion.div>
-
-        {/* =========================================================
-           SLA TIMER
-        ========================================================= */}
-        <motion.div
-          whileHover={{
-            scale: 1.01,
-          }}
-          className="
-            rounded-[28px]
-            border
-            border-orange-500/20
-            bg-gradient-to-br
-            from-orange-500/10
-            to-red-500/5
-            p-5
-            backdrop-blur-3xl
-          "
-        >
-
-          <div className="flex items-center gap-3">
-
-            <div className="h-3 w-3 rounded-full bg-orange-400 animate-pulse shadow-[0_0_20px_rgba(251,146,60,0.9)]" />
-
-            <h3 className="text-lg font-bold text-orange-200">
-              SLA Countdown
-            </h3>
-
-          </div>
-
-          <div className="mt-6">
-
-            <h2
-              className="
-                text-5xl
-                font-black
-                tracking-tight
-                text-orange-300
-              "
-            >
-              4h 23m
-            </h2>
-
-            <p className="mt-2 text-sm text-orange-200/70">
-              Until automatic escalation is triggered.
-            </p>
-
-          </div>
-
-        </motion.div>
-
-        {/* =========================================================
-           ESCALATION HISTORY
+           OFFICER ASSIGNMENT
         ========================================================= */}
         <SectionCard
-          title="Escalation History"
-          color="red"
-          expanded={expandedSections.history}
-          onToggle={() => toggleSection('history')}
+          title="Assigned Officer"
+          color="emerald"
+          expanded={expandedSections.officer}
+          onToggle={() => toggleSection('officer')}
+          icon={ShieldCheck}
         >
 
-          <div className="space-y-4">
+          <motion.div
+            whileHover={{
+              scale: 1.01,
+              y: -1,
+            }}
+            className="
+              rounded-[20px]
+              border
+              border-emerald-500/20
+              bg-gradient-to-br
+              from-emerald-500/8
+              to-teal-500/4
+              p-4
+              backdrop-blur-xl
+              transition-all
+              duration-300
+            "
+          >
+
+            <div className="flex items-start gap-3">
+
+              <div
+                className="
+                  flex
+                  h-12
+                  w-12
+                  items-center
+                  justify-center
+                  rounded-xl
+                  bg-gradient-to-br
+                  from-emerald-400
+                  to-teal-600
+                  font-bold
+                  text-sm
+                  text-white
+                  flex-shrink-0
+                "
+              >
+                {(complaint?.assignedOfficerName ?? 'OS')
+                  .split(' ')
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((part) => part[0]?.toUpperCase() ?? '')
+                  .join('') || 'OS'}
+              </div>
+
+              <div className="flex-1 min-w-0">
+
+                <div className="flex items-center gap-2 flex-wrap">
+
+                  <h3 className="text-sm font-bold text-white">
+                    {complaint?.assignedOfficerName ?? complaint?.suggestedOfficerName ?? 'Officer Sarah'}
+                  </h3>
+
+                  <div className="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-300">
+                    <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Online
+                  </div>
+
+                </div>
+
+                <p className="mt-1 text-xs text-slate-400">
+                  {complaint?.assignedDepartment ?? complaint?.department ?? 'Senior Case Officer'}
+                </p>
+
+              </div>
+
+            </div>
+
+            <div className="mt-4 space-y-2.5 border-t border-white/10 pt-4">
+
+              <InfoRow
+                icon={Phone}
+                value="+1 (555) 987-6543"
+              />
+
+              <InfoRow
+                icon={Mail}
+                value="officer.sarah@gov.local"
+              />
+
+            </div>
+
+          </motion.div>
+
+        </SectionCard>
+
+        {/* =========================================================
+           ESCALATION STATUS
+        ========================================================= */}
+        <SectionCard
+          title="Escalation Status"
+          color="orange"
+          expanded={expandedSections.escalation}
+          onToggle={() => toggleSection('escalation')}
+          icon={Siren}
+        >
+
+          <div className="space-y-2.5">
 
             <TimelineItem
-              color="red"
-              text="Escalated to Senior Management"
-              time="11:00 AM"
-            />
-
-            <TimelineItem
+              text="Case escalated to Public Works"
+              time="Today, 10:30 AM"
               color="orange"
-              text="Safety concern detected"
-              time="10:45 AM"
             />
 
             <TimelineItem
+              text="Senior engineer assigned"
+              time="Today, 9:45 AM"
               color="blue"
-              text="Complaint assigned to field officer"
-              time="09:30 AM"
+            />
+
+            <TimelineItem
+              text="Initial complaint filed"
+              time="2 days ago"
+              color="blue"
             />
 
           </div>
@@ -514,7 +421,7 @@ export default function ContextPanel({
           icon={Sparkles}
         >
 
-          <div className="space-y-4">
+          <div className="space-y-3">
 
             <InsightCard
               icon={TrendingUp}
@@ -545,13 +452,14 @@ export default function ContextPanel({
            ATTACHMENTS
         ========================================================= */}
         <SectionCard
-          title="Evidence & Attachments"
+          title="Evidence & Files"
           color="slate"
           expanded={expandedSections.evidence}
           onToggle={() => toggleSection('evidence')}
+          icon={FileText}
         >
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
 
             {[
               'pothole-photo.jpg',
@@ -561,36 +469,37 @@ export default function ContextPanel({
               <motion.div
                 key={idx}
                 whileHover={{
-                  scale: 1.01,
-                  x: 4,
+                  scale: 1.02,
+                  x: 2,
                 }}
                 className="
                   flex
                   items-center
                   justify-between
-                  rounded-2xl
+                  rounded-[16px]
                   border
                   border-white/10
                   bg-white/[0.03]
-                  p-4
+                  p-3
                   transition-all
                   duration-300
-                  hover:bg-white/[0.06]
+                  hover:bg-white/[0.05]
                 "
               >
 
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0">
 
                   <div
                     className="
                       flex
-                      h-11
-                      w-11
+                      h-9
+                      w-9
                       items-center
                       justify-center
-                      rounded-2xl
+                      rounded-lg
                       bg-blue-500/10
-                      text-lg
+                      text-sm
+                      flex-shrink-0
                     "
                   >
                     📎
@@ -598,30 +507,20 @@ export default function ContextPanel({
 
                   <div className="min-w-0">
 
-                    <p className="truncate text-sm font-medium text-slate-200">
+                    <p className="text-xs font-medium text-white truncate">
                       {file}
                     </p>
 
-                    <p className="mt-1 text-xs text-slate-500">
-                      Evidence File
+                    <p className="text-[10px] text-slate-500">
+                      128 KB
                     </p>
 
                   </div>
 
                 </div>
 
-                <button
-                  className="
-                    rounded-xl
-                    border
-                    border-white/10
-                    bg-white/[0.03]
-                    p-2
-                    transition-all
-                    hover:bg-white/[0.08]
-                  "
-                >
-                  <Download className="h-4 w-4 text-slate-300" />
+                <button className="flex-shrink-0 h-8 w-8 rounded-lg border border-white/10 hover:border-white/20 hover:bg-white/[0.05] transition-all flex items-center justify-center text-slate-400 hover:text-slate-300">
+                  <Download className="h-3.5 w-3.5" />
                 </button>
 
               </motion.div>
@@ -643,53 +542,68 @@ export default function ContextPanel({
 
 function SectionCard({
   title,
+  color,
   expanded,
   onToggle,
-  children,
-  color,
   icon: Icon,
-}: any) {
+  children,
+}: {
+  title: string
+  color: 'blue' | 'emerald' | 'orange' | 'indigo' | 'slate'
+  expanded: boolean
+  onToggle: () => void
+  icon?: any
+  children?: any
+}) {
+  const colorClasses: Record<
+    'blue' | 'emerald' | 'orange' | 'indigo' | 'slate',
+    string
+  > = {
+    blue: 'border-blue-500/20 hover:border-blue-500/30',
+    emerald: 'border-emerald-500/20 hover:border-emerald-500/30',
+    orange: 'border-orange-500/20 hover:border-orange-500/30',
+    indigo: 'border-indigo-500/20 hover:border-indigo-500/30',
+    slate: 'border-white/10 hover:border-white/15',
+  }
+
   return (
     <motion.div
-      whileHover={{
-        scale: 1.01,
-      }}
-      className="
-        relative
-        overflow-hidden
-        rounded-[28px]
+      className={`
+        rounded-[20px]
         border
-        border-white/10
         bg-white/[0.03]
-        backdrop-blur-3xl
-        shadow-[0_0_40px_rgba(59,130,246,0.06)]
-      "
+        overflow-hidden
+        transition-all
+        duration-300
+        ${colorClasses[color]}
+      `}
     >
 
+      {/* HEADER */}
       <button
         onClick={onToggle}
         className="
-          flex
           w-full
+          flex
           items-center
           justify-between
-          px-5
-          py-4
-          transition-all
-          duration-300
+          gap-3
+          px-4
+          py-3.5
           hover:bg-white/[0.03]
+          transition-all
         "
       >
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
 
           {Icon && (
-            <Icon className="h-4 w-4 text-indigo-300" />
+            <Icon className="h-4 w-4 text-slate-400 flex-shrink-0" />
           )}
 
-          <span className="text-sm font-bold text-white">
+          <h3 className="text-sm font-semibold text-white">
             {title}
-          </span>
+          </h3>
 
         </div>
 
@@ -697,12 +611,17 @@ function SectionCard({
           animate={{
             rotate: expanded ? 180 : 0,
           }}
+          transition={{
+            duration: 0.3,
+          }}
+          className="flex-shrink-0"
         >
           <ChevronDown className="h-4 w-4 text-slate-400" />
         </motion.div>
 
       </button>
 
+      {/* CONTENT */}
       <AnimatePresence>
 
         {expanded && (
@@ -719,11 +638,14 @@ function SectionCard({
               opacity: 0,
               height: 0,
             }}
+            transition={{
+              duration: 0.3,
+            }}
             className="
               border-t
-              border-white/10
-              px-5
-              py-5
+              border-white/8
+              px-4
+              py-3.5
             "
           >
             {children}
@@ -751,16 +673,16 @@ function DetailRow({
         flex
         items-center
         justify-between
-        rounded-2xl
+        rounded-[14px]
         border
-        border-white/5
+        border-white/6
         bg-white/[0.02]
-        px-4
-        py-3
+        px-3
+        py-2.5
       "
     >
 
-      <span className="text-xs text-slate-400">
+      <span className="text-[11px] font-medium text-slate-400">
         {label}
       </span>
 
@@ -769,21 +691,21 @@ function DetailRow({
           className={`
             rounded-full
             border
-            px-2
-            py-1
-            text-xs
-            font-medium
+            px-2.5
+            py-0.5
+            text-[10px]
+            font-semibold
             ${
               badge === 'open'
-                ? 'border-blue-500/20 bg-blue-500/15 text-blue-300'
-                : 'border-orange-500/20 bg-orange-500/15 text-orange-300'
+                ? 'border-blue-500/30 bg-blue-500/10 text-blue-300'
+                : 'border-orange-500/30 bg-orange-500/10 text-orange-300'
             }
           `}
         >
           {value}
         </span>
       ) : (
-        <span className="text-xs font-medium text-slate-200">
+        <span className="text-[11px] font-semibold text-slate-200">
           {value}
         </span>
       )}
@@ -801,11 +723,11 @@ function InfoRow({
   value,
 }: any) {
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex items-start gap-2.5">
 
-      <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
+      <Icon className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-slate-500" />
 
-      <p className="text-sm leading-6 text-slate-300">
+      <p className="text-xs leading-relaxed text-slate-300">
         {value}
       </p>
 
@@ -823,32 +745,32 @@ function TimelineItem({
   color,
 }: any) {
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-2.5">
 
       <div
         className={`
-          mt-1.5
+          mt-1
           h-2.5
           w-2.5
           flex-shrink-0
           rounded-full
           ${
-            color === 'red'
-              ? 'bg-red-400'
-              : color === 'orange'
-                ? 'bg-orange-400'
+            color === 'orange'
+              ? 'bg-orange-400'
+              : color === 'red'
+                ? 'bg-red-400'
                 : 'bg-blue-400'
           }
         `}
       />
 
-      <div>
+      <div className="min-w-0 flex-1">
 
-        <p className="text-sm text-slate-200">
+        <p className="text-xs font-medium text-slate-200">
           {text}
         </p>
 
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-0.5 text-[10px] text-slate-500">
           {time}
         </p>
 
@@ -871,49 +793,55 @@ function InsightCard({
   return (
     <motion.div
       whileHover={{
-        scale: 1.015,
-        y: -2,
+        scale: 1.01,
+        y: -1,
       }}
       className="
-        rounded-[24px]
+        rounded-[16px]
         border
         border-indigo-500/20
         bg-gradient-to-br
-        from-indigo-500/10
-        to-purple-500/5
-        p-4
+        from-indigo-500/8
+        to-purple-500/4
+        p-3.5
         transition-all
         duration-300
       "
     >
 
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5">
 
         <div
           className="
             flex
-            h-11
-            w-11
+            h-9
+            w-9
             items-center
             justify-center
-            rounded-2xl
+            rounded-lg
             bg-indigo-500/10
+            text-sm
+            flex-shrink-0
           "
         >
-          <Icon className="h-5 w-5 text-indigo-300" />
+          <Icon className="h-4 w-4 text-indigo-300" />
         </div>
 
         <div className="min-w-0 flex-1">
 
-          <p className="text-sm font-semibold text-white">
-            {title}
-          </p>
+          <div className="flex items-center justify-between gap-2">
 
-          <p className="mt-1 text-lg font-black text-indigo-300">
-            {value}
-          </p>
+            <p className="text-xs font-semibold text-white">
+              {title}
+            </p>
 
-          <p className="mt-2 text-xs leading-6 text-slate-400">
+            <p className="text-xs font-black text-indigo-300">
+              {value}
+            </p>
+
+          </div>
+
+          <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
             {description}
           </p>
 

@@ -9,6 +9,7 @@ import {
   TrendingUp,
   ArrowRight,
   Building2,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { statusTone, priorityTone } from "@/lib/complaint-status";
@@ -206,6 +207,7 @@ function AdminDashboard() {
             { to: "/admin/departments", label: "Manage departments", icon: Building2 },
             { to: "/admin/users", label: "Citizens & officers", icon: Users },
             { to: "/admin/analytics", label: "Analytics & reports", icon: TrendingUp },
+            { to: "/chat", label: "Admin Chat", icon: MessageSquare },
           ].map((q) => (
             <Link
               key={q.label}

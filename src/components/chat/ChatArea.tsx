@@ -9,10 +9,8 @@ import {
   Zap,
   Phone,
   Video,
-  Shield,
-  Clock3,
   Sparkles,
-  Bell,
+  Clock3,
 } from 'lucide-react'
 
 interface Message {
@@ -27,6 +25,11 @@ interface Message {
 
 interface ChatAreaProps {
   threadId: string
+  messages?: Message[]
+  onSendMessage?: (message: string) => Promise<void> | void
+  threadLabel?: string
+  typingLabel?: string | null
+  density?: 'default' | 'compact'
 }
 
 const mockMessages: Message[] = [
@@ -57,10 +60,12 @@ const mockMessages: Message[] = [
   },
 ]
 
-export default function ChatArea({ threadId }: ChatAreaProps) {
-  const [messages, setMessages] = useState<Message[]>(mockMessages)
+export default function ChatArea({ threadId, messages, onSendMessage, threadLabel, typingLabel, density = 'default' }: ChatAreaProps) {
+  const [internalMessages, setInternalMessages] = useState<Message[]>(mockMessages)
   const [input, setInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const visibleMessages = messages ?? internalMessages
+  const compact = density === 'compact'
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({
@@ -70,10 +75,16 @@ export default function ChatArea({ threadId }: ChatAreaProps) {
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
+  }, [visibleMessages])
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!input.trim()) return
+
+    if (onSendMessage) {
+      await onSendMessage(input.trim())
+      setInput('')
+      return
+    }
 
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -87,11 +98,11 @@ export default function ChatArea({ threadId }: ChatAreaProps) {
       }),
     }
 
-    setMessages((prev) => [...prev, newMessage])
+    setInternalMessages((prev) => [...prev, newMessage])
     setInput('')
 
     setTimeout(() => {
-      setMessages((prev) => [
+      setInternalMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
@@ -110,75 +121,305 @@ export default function ChatArea({ threadId }: ChatAreaProps) {
   }
 
   return (
-    <div className="relative flex flex-col h-full min-h-0 overflow-hidden rounded-[32px] border border-blue-500/20 bg-[#050816] text-white shadow-[0_0_80px_rgba(59,130,246,0.15)]">
+    <motion.div
+      initial={{
+        opacity: 0,
+        y: 10,
+      }}
+      animate={{
+        opacity: 1,
+        y: 0,
+      }}
+      transition={{
+        duration: 0.45,
+        delay: 0.05,
+      }}
+      className="
+        relative
+        flex
+        flex-col
+        h-full
+        min-h-0
+        overflow-hidden
+        rounded-[28px]
+        border
+        border-white/8
+        bg-gradient-to-b
+        from-white/[0.08]
+        via-white/[0.05]
+        to-white/[0.03]
+        backdrop-blur-2xl
+        shadow-[0_0_60px_rgba(59,130,246,0.1),inset_0_0_40px_rgba(59,130,246,0.05)]
+      "
+    >
 
-      {/* BACKGROUND GLOW */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-100px] left-[20%] h-[300px] w-[300px] rounded-full bg-blue-500/10 blur-[120px]" />
-        <div className="absolute bottom-[-100px] right-[10%] h-[250px] w-[250px] rounded-full bg-purple-500/10 blur-[120px]" />
+      {/* =====================================================
+         BACKGROUND GLOW
+      ===================================================== */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[28px]">
+
+        <div 
+          className="
+            absolute
+            top-0
+            left-[30%]
+            h-[400px]
+            w-[400px]
+            rounded-full
+            bg-blue-500/12
+            blur-[140px]
+          "
+        />
+
+        <div 
+          className="
+            absolute
+            bottom-[-150px]
+            right-[20%]
+            h-[350px]
+            w-[350px]
+            rounded-full
+            bg-indigo-500/10
+            blur-[140px]
+          "
+        />
+
       </div>
 
-      {/* HEADER */}
-      <div className="relative z-10 flex items-center justify-between px-8 py-6 border-b border-white/10 bg-white/[0.03] backdrop-blur-3xl flex-shrink-0">
+      {/* =====================================================
+         FIXED HEADER
+      ===================================================== */}
+      <div
+        className="
+          relative
+          z-10
+          flex-shrink-0
+          border-b
+          border-white/8
+          bg-white/[0.03]
+          px-4
+          py-3
+          backdrop-blur-xl
+        "
+      >
 
-        {/* LEFT */}
-        <div className="min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs text-blue-300 uppercase tracking-[0.25em]">
-              Citizen Support Workspace
-            </span>
+        {/* TOP ROW: BADGES */}
+        <div className={`mb-3 flex flex-wrap items-center gap-2 ${compact ? 'mb-2' : ''}`}>
 
-            <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              Live
-            </span>
+          <span
+            className="
+              px-3
+              py-1
+              rounded-full
+              bg-blue-500/12
+              border
+              border-blue-500/30
+              text-xs
+              text-[10px]
+              font-semibold
+              text-blue-300
+              uppercase
+              tracking-[0.3em]
+            "
+          >
+            Live Chat
+          </span>
 
-            <span className="px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/30 text-xs text-orange-300 flex items-center gap-2">
-              <Clock3 className="w-3 h-3" />
-              SLA Active
-            </span>
+          <span
+            className="
+              px-3
+              py-1
+              rounded-full
+              bg-emerald-500/12
+              border
+              border-emerald-500/30
+              text-xs
+              text-[10px]
+              font-semibold
+              text-emerald-300
+              flex
+              items-center
+              gap-1.5
+              uppercase
+              tracking-[0.3em]
+            "
+          >
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Active
+          </span>
+
+          <span
+            className="
+              px-3
+              py-1
+              rounded-full
+              bg-orange-500/12
+              border
+              border-orange-500/30
+              text-xs
+              text-[10px]
+              font-semibold
+              text-orange-300
+              flex
+              items-center
+              gap-1.5
+              uppercase
+              tracking-[0.3em]
+            "
+          >
+            <Clock3 className="w-3 h-3" />
+            SLA Active
+          </span>
+
+        </div>
+
+        {/* TITLE & CONTROLS */}
+        <div className="flex items-center justify-between gap-4">
+
+          <div className="flex-1 min-w-0">
+
+            <h1
+              className="
+                text-[22px]
+                font-black
+                tracking-tight
+                text-white
+                leading-tight
+              "
+            >
+              Citizen Support Chat
+            </h1>
+
+            <p
+              className="
+                mt-1.5
+                text-xs
+                text-slate-400
+                leading-relaxed
+              "
+            >
+              {threadLabel ? `Live thread for ${threadLabel}` : 'Real-time complaint resolution with government officers'}
+            </p>
+
           </div>
 
-          <h1 className="mt-4 text-4xl font-black leading-tight tracking-tight">
-            Government Support Chat
-          </h1>
+          {/* ACTION BUTTONS */}
+          <div className={`flex items-center gap-2 flex-shrink-0 ${compact ? 'hidden lg:flex' : ''}`}>
 
-          <p className="mt-3 text-slate-400 max-w-2xl text-sm leading-relaxed">
-            Real-time grievance communication workspace for citizens, officers,
-            escalation teams, and administrators.
-          </p>
+            <button
+              className="
+                h-11
+                px-4
+                rounded-xl
+                border
+                border-blue-500/30
+                bg-blue-500/10
+                hover:bg-blue-500/15
+                transition-all
+                flex
+                items-center
+                gap-2
+                text-blue-300
+                font-medium
+                text-sm
+              "
+            >
+              <Phone className="w-4 h-4" />
+              <span className="hidden sm:inline">Call</span>
+            </button>
+
+            <button
+              className="
+                h-11
+                px-4
+                rounded-xl
+                border
+                border-indigo-500/30
+                bg-indigo-500/10
+                hover:bg-indigo-500/15
+                transition-all
+                flex
+                items-center
+                gap-2
+                text-indigo-300
+                font-medium
+                text-sm
+              "
+            >
+              <Video className="w-4 h-4" />
+              <span className="hidden sm:inline">Video</span>
+            </button>
+
+            <button
+              className="
+                h-11
+                px-4
+                rounded-xl
+                border
+                border-emerald-500/30
+                bg-emerald-500/10
+                hover:bg-emerald-500/15
+                transition-all
+                flex
+                items-center
+                gap-2
+                text-emerald-300
+                font-medium
+                text-sm
+              "
+            >
+              <Sparkles className="w-4 h-4" />
+              <span className="hidden sm:inline">AI</span>
+            </button>
+
+            <button
+              className="
+                h-11
+                w-11
+                rounded-xl
+                border
+                border-white/15
+                bg-white/[0.05]
+                hover:bg-white/[0.08]
+                transition-all
+                flex
+                items-center
+                justify-center
+                text-slate-300
+              "
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
+
+          </div>
+
         </div>
 
-        {/* RIGHT ACTIONS */}
-        <div className="flex items-center gap-3 ml-6">
-
-          <button className="h-12 px-5 rounded-2xl border border-blue-500/20 bg-blue-500/10 hover:bg-blue-500/20 transition-all flex items-center gap-2 text-blue-200">
-            <Phone className="w-4 h-4" />
-            Call
-          </button>
-
-          <button className="h-12 px-5 rounded-2xl border border-purple-500/20 bg-purple-500/10 hover:bg-purple-500/20 transition-all flex items-center gap-2 text-purple-200">
-            <Video className="w-4 h-4" />
-            Video
-          </button>
-
-          <button className="h-12 px-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 hover:bg-emerald-500/20 transition-all flex items-center gap-2 text-emerald-200">
-            <Sparkles className="w-4 h-4" />
-            AI Summary
-          </button>
-
-          <button className="h-12 w-12 rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] transition-all flex items-center justify-center">
-            <MoreVertical className="w-5 h-5 text-slate-300" />
-          </button>
-
-        </div>
       </div>
 
-      {/* MESSAGE AREA */}
-      <div className="relative z-10 flex-1 min-h-0 overflow-y-auto px-8 py-8 space-y-8">
+      {/* =====================================================
+         SCROLLABLE MESSAGE AREA
+      ===================================================== */}
+      <div
+        className="
+          relative
+          z-10
+          flex-1
+          min-h-0
+          overflow-y-auto
+          px-4
+          py-3
+          space-y-3
+          [&::-webkit-scrollbar]:w-2
+          [&::-webkit-scrollbar-track]:bg-transparent
+          [&::-webkit-scrollbar-thumb]:bg-white/10
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb:hover]:bg-white/20
+        "
+      >
 
         <AnimatePresence>
-          {messages.map((message) => {
+          {visibleMessages.map((message) => {
             const isCitizen = message.type === 'citizen'
             const isSystem = message.type === 'system'
 
@@ -186,11 +427,26 @@ export default function ChatArea({ threadId }: ChatAreaProps) {
               return (
                 <motion.div
                   key={message.id}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex justify-center"
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex justify-center py-2"
                 >
-                  <div className="px-5 py-3 rounded-2xl border border-yellow-500/20 bg-yellow-500/10 text-yellow-200 text-sm backdrop-blur-xl">
+                  <div
+                    className="
+                      px-3
+                      py-1.5
+                      rounded-xl
+                      border
+                      border-amber-500/25
+                      bg-amber-500/10
+                      text-amber-200
+                      text-xs
+                      font-medium
+                      backdrop-blur-xl
+                    "
+                  >
                     {message.content}
                   </div>
                 </motion.div>
@@ -200,43 +456,103 @@ export default function ChatArea({ threadId }: ChatAreaProps) {
             return (
               <motion.div
                 key={message.id}
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`flex ${isCitizen ? 'justify-end' : 'justify-start'}`}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.3 }}
+                className={`
+                  flex
+                  ${isCitizen ? 'justify-end' : 'justify-start'}
+                `}
               >
                 <div
-                  className={`max-w-[72%] min-w-0 break-words whitespace-pre-wrap rounded-[28px] px-6 py-5 border backdrop-blur-2xl shadow-[0_0_30px_rgba(59,130,246,0.12)]
-                  ${
-                    isCitizen
-                      ? 'bg-gradient-to-br from-blue-600 to-cyan-500 border-blue-400/30 text-white'
-                      : 'bg-white/[0.04] border-white/10 text-slate-100'
-                  }`}
+                  className={`
+                    flex
+                    gap-3
+                      max-w-[72%]
+                    ${isCitizen ? 'flex-row-reverse' : 'flex-row'}
+                  `}
                 >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div
-                      className={`h-10 w-10 rounded-2xl flex items-center justify-center font-bold
+
+                  {/* AVATAR */}
+                  <div
+                    className={`
+                      h-10
+                      w-10
+                      flex-shrink-0
+                      rounded-xl
+                      flex
+                      items-center
+                      justify-center
+                      font-bold
+                      text-xs
                       ${
                         isCitizen
-                          ? 'bg-white/20'
-                          : 'bg-blue-500/20 text-blue-300'
-                      }`}
-                    >
-                      {message.avatar}
-                    </div>
-
-                    <div>
-                      <p className="text-sm font-semibold">
-                        {message.author}
-                      </p>
-                      <p className="text-xs opacity-60">
-                        {message.timestamp}
-                      </p>
-                    </div>
+                          ? 'bg-gradient-to-br from-blue-400 to-cyan-500 text-white'
+                          : 'bg-white/10 text-blue-300 border border-white/20'
+                      }
+                    `}
+                  >
+                    {message.avatar}
                   </div>
 
-                  <p className="leading-relaxed text-[15px] break-words whitespace-pre-wrap">
-                    {message.content}
-                  </p>
+                  {/* MESSAGE BUBBLE */}
+                  <div className="flex flex-col gap-1 min-w-0">
+
+                    {/* BUBBLE CONTENT */}
+                    <div
+                      className={`
+                        rounded-[18px]
+                        px-4
+                        py-3
+                        border
+                        backdrop-blur-xl
+                        shadow-[0_0_30px_rgba(59,130,246,0.08)]
+                        break-words
+                        text-[13px]
+                        leading-relaxed
+                        ${
+                          isCitizen
+                            ? `
+                              bg-gradient-to-br
+                              from-blue-500/20
+                              via-blue-500/15
+                              to-cyan-500/10
+                              border-blue-500/30
+                              text-white
+                            `
+                            : `
+                              bg-white/[0.05]
+                              border-white/10
+                              text-slate-200
+                            `
+                        }
+                      `}
+                    >
+                      {message.content}
+                    </div>
+
+                    {/* METADATA */}
+                    <div
+                      className={`
+                        flex
+                        items-center
+                        gap-2
+                        px-2
+                        text-[11px]
+                        text-slate-500
+                        ${isCitizen ? 'justify-end' : 'justify-start'}
+                      `}
+                    >
+                      <span className="font-medium text-slate-400">
+                        {message.author}
+                      </span>
+                      <span>•</span>
+                      <span>{message.timestamp}</span>
+                    </div>
+
+                  </div>
+
                 </div>
               </motion.div>
             )
@@ -244,77 +560,227 @@ export default function ChatArea({ threadId }: ChatAreaProps) {
         </AnimatePresence>
 
         {/* TYPING INDICATOR */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex items-center gap-3 text-slate-400 text-sm"
-        >
-          <div className="flex gap-1">
-            <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" />
-            <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce delay-100" />
-            <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce delay-200" />
-          </div>
-
-          Officer Sarah is typing...
-        </motion.div>
+        {typingLabel ? (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-3 pl-2 text-sm text-slate-400"
+          >
+            <div className="flex gap-1.5">
+              {[0, 1, 2].map((dot) => (
+                <motion.div
+                  key={dot}
+                  animate={{ y: [0, -3, 0] }}
+                  transition={{
+                    delay: dot * 0.1,
+                    duration: 0.7,
+                    repeat: Infinity,
+                  }}
+                  className="h-2 w-2 rounded-full bg-blue-400"
+                />
+              ))}
+            </div>
+            <span>{typingLabel} is typing...</span>
+          </motion.div>
+        ) : null}
 
         <div ref={messagesEndRef} />
       </div>
 
-      {/* COMPOSER */}
-      <div className="relative z-10 border-t border-white/10 p-6 bg-black/20 backdrop-blur-3xl flex-shrink-0">
+      {/* =====================================================
+         FIXED COMPOSER FOOTER
+      ===================================================== */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.1 }}
+        className="
+          relative
+          z-10
+          flex-shrink-0
+          border-t
+          border-white/8
+          bg-white/[0.02]
+          px-4
+          py-3
+          backdrop-blur-xl
+        "
+      >
 
-        <div className="rounded-[32px] border border-blue-500/20 bg-gradient-to-br from-white/[0.05] to-white/[0.02] p-5 shadow-[0_0_40px_rgba(59,130,246,0.12)]">
+        {/* COMPOSER CONTAINER */}
+        <div
+          className="
+            rounded-[20px]
+            border
+            border-white/12
+            bg-gradient-to-br
+            from-white/[0.06]
+            to-white/[0.02]
+            p-3
+            space-y-3
+            shadow-[0_0_40px_rgba(59,130,246,0.08)]
+          "
+        >
 
+          {/* INPUT AREA */}
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            rows={3}
+            rows={2}
             placeholder="Ask anything about your complaint..."
-            className="w-full resize-none bg-transparent text-white placeholder:text-slate-500 outline-none text-[15px] leading-relaxed"
+            className="
+              w-full
+              resize-none
+              bg-transparent
+              text-white
+              placeholder:text-slate-500
+              outline-none
+              text-sm
+              leading-relaxed
+              font-medium
+            "
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                sendMessage()
+              }
+            }}
           />
 
-          <div className="mt-5 flex items-center justify-between gap-4 flex-wrap">
+          {/* ACTIONS ROW */}
+          <div
+            className="
+              flex
+              items-center
+              justify-between
+              gap-4
+              flex-wrap
+            "
+          >
 
             {/* LEFT ACTIONS */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
 
-              <button className="h-11 w-11 rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] transition-all flex items-center justify-center">
-                <Paperclip className="w-5 h-5 text-slate-300" />
+              <button
+                className="
+                  h-10
+                  w-10
+                      rounded-md
+                  border
+                  border-white/15
+                  bg-white/[0.05]
+                  hover:bg-white/[0.08]
+                  transition-all
+                  flex
+                  items-center
+                  justify-center
+                  text-slate-400
+                  hover:text-slate-300
+                "
+              >
+                <Paperclip className="w-4 h-4" />
               </button>
 
-              <button className="h-11 w-11 rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] transition-all flex items-center justify-center">
-                <Smile className="w-5 h-5 text-slate-300" />
+              <button
+                className="
+                  h-10
+                  w-10
+                      rounded-md
+                  border
+                  border-white/15
+                  bg-white/[0.05]
+                  hover:bg-white/[0.08]
+                  transition-all
+                  flex
+                  items-center
+                  justify-center
+                  text-slate-400
+                  hover:text-slate-300
+                "
+              >
+                <Smile className="w-4 h-4" />
               </button>
 
-              <button className="h-11 w-11 rounded-2xl bg-white/[0.04] border border-white/10 hover:bg-white/[0.08] transition-all flex items-center justify-center">
-                <Mic className="w-5 h-5 text-slate-300" />
+              <button
+                className="
+                  h-10
+                  w-10
+                      rounded-md
+                  border
+                  border-white/15
+                  bg-white/[0.05]
+                  hover:bg-white/[0.08]
+                  transition-all
+                  flex
+                  items-center
+                  justify-center
+                  text-slate-400
+                  hover:text-slate-300
+                "
+              >
+                <Mic className="w-4 h-4" />
               </button>
 
             </div>
 
             {/* RIGHT ACTIONS */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
 
-              <button className="h-11 px-5 rounded-2xl border border-purple-500/20 bg-purple-500/10 hover:bg-purple-500/20 transition-all flex items-center gap-2 text-purple-200">
-                <Zap className="w-4 h-4" />
-                AI Assist
+              <button
+                className="
+                  h-10
+                  px-3
+                      rounded-md
+                  border
+                  border-purple-500/30
+                  bg-purple-500/10
+                  hover:bg-purple-500/15
+                  transition-all
+                  flex
+                  items-center
+                  gap-2
+                  text-purple-300
+                  font-medium
+                  text-xs
+                "
+              >
+                <Zap className="w-3.5 h-3.5" />
+                AI
               </button>
 
               <button
                 onClick={sendMessage}
-                className="h-12 px-7 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-500 hover:scale-[1.03] transition-all shadow-[0_0_40px_rgba(59,130,246,0.45)] flex items-center gap-2 font-semibold"
+                className="
+                  h-10
+                  px-4
+                      rounded-md
+                  bg-gradient-to-r
+                  from-blue-500
+                  to-indigo-500
+                  hover:from-blue-600
+                  hover:to-indigo-600
+                  transition-all
+                  hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]
+                  flex
+                  items-center
+                  gap-2
+                  font-semibold
+                  text-white
+                  text-xs
+                "
               >
-                <Send className="w-4 h-4" />
+                <Send className="w-3.5 h-3.5" />
                 Send
               </button>
 
             </div>
 
           </div>
+
         </div>
 
-      </div>
-    </div>
+      </motion.div>
+
+    </motion.div>
   )
 }

@@ -2,6 +2,11 @@ import { useEffect, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 
 function resolveSocketUrl() {
+  const explicitSocketUrl = (import.meta.env.VITE_SOCKET_URL as string | undefined)?.trim();
+  if (explicitSocketUrl) {
+    return explicitSocketUrl.replace(/\/$/, "");
+  }
+
   const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() || "/api";
 
   if (apiBase.startsWith("http://") || apiBase.startsWith("https://")) {
@@ -9,14 +14,14 @@ function resolveSocketUrl() {
   }
 
   if (typeof window !== "undefined") {
-    if (window.location.hostname === "localhost") {
-      return "http://localhost:4004";
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return "http://localhost:4000";
     }
 
     return window.location.origin;
   }
 
-  return "/";
+  return "http://localhost:4000";
 }
 
 function getCookie(name: string) {

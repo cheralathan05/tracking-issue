@@ -18,7 +18,11 @@ import {
    PREMIUM TOP NAVBAR
 ========================================================= */
 
-export default function TopNavbar() {
+interface TopNavbarProps {
+  compact?: boolean
+}
+
+export default function TopNavbar({ compact = false }: TopNavbarProps) {
   return (
     <motion.header
       initial={{
@@ -36,16 +40,19 @@ export default function TopNavbar() {
         relative
         z-50
         flex
-        h-24
+        h-16
         flex-shrink-0
         items-center
         justify-between
         overflow-hidden
         border-b
-        border-white/10
-        bg-[#060B16]/90
-        px-8
-        backdrop-blur-3xl
+        border-white/8
+        bg-gradient-to-b
+        from-white/[0.08]
+        via-white/[0.05]
+        to-white/[0.02]
+        px-4
+        backdrop-blur-xl
       "
     >
 
@@ -65,7 +72,7 @@ export default function TopNavbar() {
       {/* =====================================================
          LEFT SECTION
       ===================================================== */}
-      <div className="relative z-10 flex items-center gap-8">
+      <div className="relative z-10 flex min-w-0 items-center gap-3">
 
         {/* =================================================
            LOGO
@@ -79,7 +86,7 @@ export default function TopNavbar() {
             flex
             cursor-pointer
             items-center
-            gap-4
+            gap-3
           "
         >
 
@@ -101,12 +108,12 @@ export default function TopNavbar() {
               className="
                 relative
                 flex
-                h-14
-                w-14
+                h-11
+                w-11
                 items-center
                 justify-center
                 overflow-hidden
-                rounded-2xl
+                rounded-xl
                 border
                 border-blue-400/30
                 bg-gradient-to-br
@@ -118,14 +125,14 @@ export default function TopNavbar() {
 
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.4),transparent_40%)]" />
 
-              <span className="relative z-10 text-xl font-black text-white">
+              <span className="relative z-10 text-lg font-black text-white">
                 CB
               </span>
 
             </motion.div>
 
             {/* OUTER GLOW */}
-            <div className="absolute inset-0 rounded-2xl bg-blue-400/20 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <div className="absolute inset-0 rounded-xl bg-blue-400/20 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
           </div>
 
@@ -134,7 +141,7 @@ export default function TopNavbar() {
 
             <h1
               className="
-                text-2xl
+                text-xl
                 font-black
                 tracking-tight
                 text-white
@@ -189,19 +196,7 @@ export default function TopNavbar() {
             duration: 2.5,
             repeat: Infinity,
           }}
-          className="
-            hidden
-            xl:flex
-            items-center
-            gap-3
-            rounded-full
-            border
-            border-emerald-500/20
-            bg-emerald-500/10
-            px-5
-            py-3
-            backdrop-blur-2xl
-          "
+            className={compact ? 'hidden 2xl:flex items-center gap-3 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2.5 backdrop-blur-2xl' : 'hidden xl:flex items-center gap-3 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-5 py-3 backdrop-blur-2xl'}
         >
 
           <div className="relative flex h-3 w-3 items-center justify-center">
@@ -231,7 +226,7 @@ export default function TopNavbar() {
       {/* =====================================================
          CENTER SECTION
       ===================================================== */}
-      <div className="relative z-10 hidden 2xl:flex items-center gap-5">
+      <div className="relative z-10 hidden 2xl:flex items-center gap-4">
 
         {/* REALTIME */}
         <StatusPill

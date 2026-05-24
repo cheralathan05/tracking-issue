@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ChartContainer, ChartTooltipContent, ChartLegendContent } from "@/components/ui/chart";
+import * as RechartsPrimitive from "recharts";
 import { priorityTone, statusTone } from "@/lib/complaint-status";
 import {
   fetchComplaintSummary,
@@ -276,6 +278,31 @@ function DashboardPage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="rounded-3xl border border-border bg-card p-5 shadow-card">
+          <div className="flex items-center justify-between border-b border-border px-5 py-4">
+            <div>
+              <h2 className="font-semibold">Monthly trend</h2>
+              <p className="text-xs text-muted-foreground">Complaints and resolutions over recent months.</p>
+            </div>
+            <TrendingUp className="h-5 w-5 text-primary" />
+          </div>
+          <div className="p-4">
+            <ChartContainer
+              className="h-56"
+              config={{ total: { label: "Total", color: "var(--chart-1)" }, resolved: { label: "Resolved", color: "var(--chart-2)" } }}
+            >
+              <RechartsPrimitive.LineChart data={analytics?.monthlyTrend ?? []} margin={{ top: 6, right: 12, left: -10, bottom: 6 }}>
+                <RechartsPrimitive.CartesianGrid strokeDasharray="3 3" stroke="transparent" />
+                <RechartsPrimitive.XAxis dataKey="month" tick={{ fill: "var(--muted-foreground)" }} />
+                <RechartsPrimitive.YAxis tick={{ fill: "var(--muted-foreground)" }} />
+                <RechartsPrimitive.Tooltip content={<ChartTooltipContent />} />
+                <RechartsPrimitive.Legend content={<ChartLegendContent />} />
+                <RechartsPrimitive.Line type="monotone" dataKey="count" name="Total" stroke="var(--color-total)" strokeWidth={2} dot={{ r: 3 }} />
+                <RechartsPrimitive.Line type="monotone" dataKey="resolved" name="Resolved" stroke="var(--color-resolved)" strokeWidth={2} dot={{ r: 3 }} />
+              </RechartsPrimitive.LineChart>
+            </ChartContainer>
+          </div>
+        </div>
         <div className="rounded-3xl border border-border bg-card shadow-card">
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <div>

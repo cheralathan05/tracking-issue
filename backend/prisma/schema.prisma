@@ -62,6 +62,9 @@ model User {
   escalationsCreated Escalation[] @relation("EscalationCreator")
   escalationsResolved Escalation[] @relation("EscalationResolver")
   feedbackSubmitted Feedback[]
+  complaintAttachments ComplaintAttachment[]
+  aiInsightsCreated AIInsight[]
+  satisfactionFeedbackSubmitted SatisfactionFeedback[]
 
   @@map("users")
 }
@@ -109,6 +112,9 @@ model Complaint {
   timelines ComplaintTimeline[]
   escalation Escalation?
   feedback Feedback?
+  attachments ComplaintAttachment[]
+  aiInsights AIInsight[]
+  satisfactionFeedback SatisfactionFeedback?
 
   @@index([status])
   @@index([department])
@@ -368,4 +374,68 @@ model Feedback {
   @@index([rating])
   @@index([createdAt])
   @@map("feedback")
+}
+
+model ComplaintAttachment {
+  id          String   @id @default(cuid())
+  complaintId String
+  uploadedBy  String
+  fileUrl     String
+  fileType    String
+  fileName    String?
+  fileSize    Int?
+  previewUrl  String?
+  downloadCount Int   @default(0)
+  createdAt   DateTime @default(now())
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  uploader  User      @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@index([complaintId])
+  @@index([uploadedBy])
+  @@map("complaint_attachments")
+}
+
+model AIInsight {
+  id            String   @id @default(cuid())
+  complaintId   String
+  createdBy     String?
+  source        String   @default("ollama")
+  model         String
+  summary       String
+  urgency       String
+  department    String
+  escalationRisk String
+  sentiment     String
+  priority      String
+  confidence    Float    @default(0.7)
+  payload       Json?
+  createdAt     DateTime @default(now())
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  creator   User?     @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([complaintId])
+  @@index([createdBy])
+  @@map("ai_insights")
+}
+
+model SatisfactionFeedback {
+  id                    String   @id @default(cuid())
+  complaintId           String   @unique
+  rating                Int
+  comment               String?
+  officerRating         Int?
+  overallSatisfaction   Boolean  @default(true)
+  suggestedImprovements String?
+  submittedBy           String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  complaint     Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  submittedByUser User    @relation(fields: [submittedBy], references: [id], onDelete: Cascade)
+
+  @@index([rating])
+  @@index([createdAt])
+  @@map("satisfaction_feedback")
 }

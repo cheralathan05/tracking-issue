@@ -80,7 +80,10 @@ export function OfficerInviteAccept() {
         confirmPassword,
       });
       toast.success("Officer account activated");
-      await navigate({ to: "/officer/login" });
+      await navigate({
+        to: "/officer/login",
+        search: { email: invite?.email },
+      });
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to activate invite");
     } finally {

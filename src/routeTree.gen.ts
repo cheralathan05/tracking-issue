@@ -27,9 +27,11 @@ import { Route as OfficerIndexRouteImport } from './routes/officer.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as OfficerLoginRouteImport } from './routes/officer_.login'
 import { Route as OfficerInviteRouteImport } from './routes/officer_.invite'
+import { Route as OfficerForgotPasswordRouteImport } from './routes/officer_.forgot-password'
 import { Route as OfficerActivateRouteImport } from './routes/officer_.activate'
 import { Route as OfficerResolutionRouteImport } from './routes/officer.resolution'
 import { Route as OfficerDashboardRouteImport } from './routes/officer.dashboard'
+import { Route as OfficerChatRouteImport } from './routes/officer.chat'
 import { Route as AdminSignupRouteImport } from './routes/admin_.signup'
 import { Route as AdminLoginRouteImport } from './routes/admin_.login'
 import { Route as AdminForgotPasswordRouteImport } from './routes/admin_.forgot-password'
@@ -39,6 +41,7 @@ import { Route as AdminOfficersRouteImport } from './routes/admin.officers'
 import { Route as AdminInviteRouteImport } from './routes/admin.invite'
 import { Route as AdminDepartmentsRouteImport } from './routes/admin.departments'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminChatRouteImport } from './routes/admin.chat'
 import { Route as AdminAssignmentRouteImport } from './routes/admin.assignment'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
@@ -143,6 +146,11 @@ const OfficerInviteRoute = OfficerInviteRouteImport.update({
   path: '/officer/invite',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OfficerForgotPasswordRoute = OfficerForgotPasswordRouteImport.update({
+  id: '/officer_/forgot-password',
+  path: '/officer/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OfficerActivateRoute = OfficerActivateRouteImport.update({
   id: '/officer_/activate',
   path: '/officer/activate',
@@ -156,6 +164,11 @@ const OfficerResolutionRoute = OfficerResolutionRouteImport.update({
 const OfficerDashboardRoute = OfficerDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => OfficerRoute,
+} as any)
+const OfficerChatRoute = OfficerChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
   getParentRoute: () => OfficerRoute,
 } as any)
 const AdminSignupRoute = AdminSignupRouteImport.update({
@@ -201,6 +214,11 @@ const AdminDepartmentsRoute = AdminDepartmentsRouteImport.update({
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminChatRoute = AdminChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAssignmentRoute = AdminAssignmentRouteImport.update({
@@ -295,6 +313,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AppSettingsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/assignment': typeof AdminAssignmentRoute
+  '/admin/chat': typeof AdminChatRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/departments': typeof AdminDepartmentsRoute
   '/admin/invite': typeof AdminInviteRoute
@@ -304,9 +323,11 @@ export interface FileRoutesByFullPath {
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/signup': typeof AdminSignupRoute
+  '/officer/chat': typeof OfficerChatRoute
   '/officer/dashboard': typeof OfficerDashboardRoute
   '/officer/resolution': typeof OfficerResolutionRoute
   '/officer/activate': typeof OfficerActivateRoute
+  '/officer/forgot-password': typeof OfficerForgotPasswordRoute
   '/officer/invite': typeof OfficerInviteRoute
   '/officer/login': typeof OfficerLoginRoute
   '/admin/': typeof AdminIndexRoute
@@ -338,6 +359,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AppSettingsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/assignment': typeof AdminAssignmentRoute
+  '/admin/chat': typeof AdminChatRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/departments': typeof AdminDepartmentsRoute
   '/admin/invite': typeof AdminInviteRoute
@@ -347,9 +369,11 @@ export interface FileRoutesByTo {
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/signup': typeof AdminSignupRoute
+  '/officer/chat': typeof OfficerChatRoute
   '/officer/dashboard': typeof OfficerDashboardRoute
   '/officer/resolution': typeof OfficerResolutionRoute
   '/officer/activate': typeof OfficerActivateRoute
+  '/officer/forgot-password': typeof OfficerForgotPasswordRoute
   '/officer/invite': typeof OfficerInviteRoute
   '/officer/login': typeof OfficerLoginRoute
   '/admin': typeof AdminIndexRoute
@@ -385,6 +409,7 @@ export interface FileRoutesById {
   '/_app/settings': typeof AppSettingsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/assignment': typeof AdminAssignmentRoute
+  '/admin/chat': typeof AdminChatRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/departments': typeof AdminDepartmentsRoute
   '/admin/invite': typeof AdminInviteRoute
@@ -394,9 +419,11 @@ export interface FileRoutesById {
   '/admin_/forgot-password': typeof AdminForgotPasswordRoute
   '/admin_/login': typeof AdminLoginRoute
   '/admin_/signup': typeof AdminSignupRoute
+  '/officer/chat': typeof OfficerChatRoute
   '/officer/dashboard': typeof OfficerDashboardRoute
   '/officer/resolution': typeof OfficerResolutionRoute
   '/officer_/activate': typeof OfficerActivateRoute
+  '/officer_/forgot-password': typeof OfficerForgotPasswordRoute
   '/officer_/invite': typeof OfficerInviteRoute
   '/officer_/login': typeof OfficerLoginRoute
   '/admin/': typeof AdminIndexRoute
@@ -432,6 +459,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/admin/analytics'
     | '/admin/assignment'
+    | '/admin/chat'
     | '/admin/dashboard'
     | '/admin/departments'
     | '/admin/invite'
@@ -441,9 +469,11 @@ export interface FileRouteTypes {
     | '/admin/forgot-password'
     | '/admin/login'
     | '/admin/signup'
+    | '/officer/chat'
     | '/officer/dashboard'
     | '/officer/resolution'
     | '/officer/activate'
+    | '/officer/forgot-password'
     | '/officer/invite'
     | '/officer/login'
     | '/admin/'
@@ -475,6 +505,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/admin/analytics'
     | '/admin/assignment'
+    | '/admin/chat'
     | '/admin/dashboard'
     | '/admin/departments'
     | '/admin/invite'
@@ -484,9 +515,11 @@ export interface FileRouteTypes {
     | '/admin/forgot-password'
     | '/admin/login'
     | '/admin/signup'
+    | '/officer/chat'
     | '/officer/dashboard'
     | '/officer/resolution'
     | '/officer/activate'
+    | '/officer/forgot-password'
     | '/officer/invite'
     | '/officer/login'
     | '/admin'
@@ -521,6 +554,7 @@ export interface FileRouteTypes {
     | '/_app/settings'
     | '/admin/analytics'
     | '/admin/assignment'
+    | '/admin/chat'
     | '/admin/dashboard'
     | '/admin/departments'
     | '/admin/invite'
@@ -530,9 +564,11 @@ export interface FileRouteTypes {
     | '/admin_/forgot-password'
     | '/admin_/login'
     | '/admin_/signup'
+    | '/officer/chat'
     | '/officer/dashboard'
     | '/officer/resolution'
     | '/officer_/activate'
+    | '/officer_/forgot-password'
     | '/officer_/invite'
     | '/officer_/login'
     | '/admin/'
@@ -565,6 +601,7 @@ export interface RootRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
   AdminSignupRoute: typeof AdminSignupRoute
   OfficerActivateRoute: typeof OfficerActivateRoute
+  OfficerForgotPasswordRoute: typeof OfficerForgotPasswordRoute
   OfficerInviteRoute: typeof OfficerInviteRoute
   OfficerLoginRoute: typeof OfficerLoginRoute
 }
@@ -697,6 +734,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OfficerInviteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/officer_/forgot-password': {
+      id: '/officer_/forgot-password'
+      path: '/officer/forgot-password'
+      fullPath: '/officer/forgot-password'
+      preLoaderRoute: typeof OfficerForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/officer_/activate': {
       id: '/officer_/activate'
       path: '/officer/activate'
@@ -716,6 +760,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/officer/dashboard'
       preLoaderRoute: typeof OfficerDashboardRouteImport
+      parentRoute: typeof OfficerRoute
+    }
+    '/officer/chat': {
+      id: '/officer/chat'
+      path: '/chat'
+      fullPath: '/officer/chat'
+      preLoaderRoute: typeof OfficerChatRouteImport
       parentRoute: typeof OfficerRoute
     }
     '/admin_/signup': {
@@ -779,6 +830,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/admin/dashboard'
       preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/chat': {
+      id: '/admin/chat'
+      path: '/chat'
+      fullPath: '/admin/chat'
+      preLoaderRoute: typeof AdminChatRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/assignment': {
@@ -909,6 +967,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 interface AdminRouteChildren {
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminAssignmentRoute: typeof AdminAssignmentRoute
+  AdminChatRoute: typeof AdminChatRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminDepartmentsRoute: typeof AdminDepartmentsRoute
   AdminInviteRoute: typeof AdminInviteRoute
@@ -923,6 +982,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminAssignmentRoute: AdminAssignmentRoute,
+  AdminChatRoute: AdminChatRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminDepartmentsRoute: AdminDepartmentsRoute,
   AdminInviteRoute: AdminInviteRoute,
@@ -937,6 +997,7 @@ const AdminRouteChildren: AdminRouteChildren = {
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface OfficerRouteChildren {
+  OfficerChatRoute: typeof OfficerChatRoute
   OfficerDashboardRoute: typeof OfficerDashboardRoute
   OfficerResolutionRoute: typeof OfficerResolutionRoute
   OfficerIndexRoute: typeof OfficerIndexRoute
@@ -945,6 +1006,7 @@ interface OfficerRouteChildren {
 }
 
 const OfficerRouteChildren: OfficerRouteChildren = {
+  OfficerChatRoute: OfficerChatRoute,
   OfficerDashboardRoute: OfficerDashboardRoute,
   OfficerResolutionRoute: OfficerResolutionRoute,
   OfficerIndexRoute: OfficerIndexRoute,
@@ -974,6 +1036,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
   AdminSignupRoute: AdminSignupRoute,
   OfficerActivateRoute: OfficerActivateRoute,
+  OfficerForgotPasswordRoute: OfficerForgotPasswordRoute,
   OfficerInviteRoute: OfficerInviteRoute,
   OfficerLoginRoute: OfficerLoginRoute,
 }

@@ -53,6 +53,7 @@ chatRouter.post("/rooms/:roomId/messages", requireChatAccess, async (req, res, n
 
     try {
       getSocket().to(`room:${roomId}`).emit("message", created);
+      getSocket().to(`room:${roomId}`).emit("message_sent", created);
     } catch {
       // Socket not ready; the message is still persisted.
     }
@@ -105,6 +106,7 @@ chatRouter.post("/rooms/:roomId/attachments", requireChatAccess, async (req, res
 
     try {
       getSocket().to(`room:${String(roomId)}`).emit("message", created);
+      getSocket().to(`room:${String(roomId)}`).emit("message_sent", created);
     } catch {
       // Socket not ready; the attachment message is still persisted.
     }

@@ -4,6 +4,7 @@ import { prisma } from "./config/prisma.js";
 import http from "http";
 import * as chatService from "./services/chat.service.js";
 import { initSocket } from "./socket.js";
+import { startScheduledTasks, stopScheduledTasks } from "./scheduler.js";
 
 async function bootstrap() {
   try {
@@ -70,6 +71,15 @@ async function bootstrap() {
             if (role === "citizen") {
               socket.join("role:citizen");
             }
+
+            const presenceEvent = role === "officer" ? "officer_online" : role === "citizen" ? "citizen_online" : null;
+            if (presenceEvent) {
+              socket.broadcast.to(`role:${role}`).emit(presenceEvent, {
+                userId: user.id,
+                role,
+                isOnline: true,
+              });
+            }
           }
         }
       } catch (e) {
@@ -108,11 +118,14 @@ async function bootstrap() {
 
       socket.on("typing", ({ roomId, userName, isTyping }: { roomId?: string; userName?: string; isTyping?: boolean }) => {
         if (!roomId) return;
-        socket.to(`room:${roomId}`).emit("typing", {
+        const payload = {
           roomId,
           userName,
           isTyping: Boolean(isTyping),
-        });
+        };
+
+        socket.to(`room:${roomId}`).emit("typing", payload);
+        socket.to(`room:${roomId}`).emit(isTyping ? "typing_start" : "typing_stop", payload);
       });
 
       socket.on("sendMessage", async (payload: any) => {
@@ -123,8 +136,27 @@ async function bootstrap() {
           const safePayload = { ...payload, senderId };
           const msg = await chatService.sendMessage(safePayload);
           io.to(`room:${payload.roomId}`).emit("message", msg);
+          io.to(`room:${payload.roomId}`).emit("message_sent", msg);
         } catch (e) {
           // ignore or emit error
+        }
+      });
+
+      socket.on("disconnect", () => {
+        try {
+          const user = (socket as any).data?.user;
+          if (user && user.role) {
+            const presenceEvent = user.role === "officer" ? "officer_online" : user.role === "citizen" ? "citizen_online" : null;
+            if (presenceEvent) {
+              socket.broadcast.to(`role:${user.role}`).emit(presenceEvent, {
+                userId: user.id,
+                role: user.role,
+                isOnline: false,
+              });
+            }
+          }
+        } catch {
+          // ignore
         }
       });
     });
@@ -152,8 +184,16 @@ async function bootstrap() {
       }
     });
 
-    server.listen(currentPort, () => {
+    server.listen(currentPort, async () => {
       console.log(`SmartGov auth backend listening on port ${currentPort}`);
+      
+      // Start scheduled tasks after server is ready
+      try {
+        await startScheduledTasks();
+        console.log("✓ All scheduled tasks initialized");
+      } catch (error) {
+        console.error("Failed to start scheduled tasks:", error);
+      }
     });
   } catch (error) {
     console.error("Failed to start SmartGov auth backend", error);
@@ -162,11 +202,15 @@ async function bootstrap() {
 }
 
 process.on("SIGINT", async () => {
+  console.log("\nReceived SIGINT signal, shutting down gracefully...");
+  stopScheduledTasks();
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
+  console.log("Received SIGTERM signal, shutting down gracefully...");
+  stopScheduledTasks();
   await prisma.$disconnect();
   process.exit(0);
 });

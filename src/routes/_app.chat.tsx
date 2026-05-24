@@ -7,7 +7,7 @@ export const Route = createFileRoute('/_app/chat')({
 
 function ChatPage() {
   return (
-    <div className="w-full h-screen">
+    <div className="h-full min-h-0 w-full overflow-hidden bg-[#040813] text-white">
       <ChatWorkspace />
     </div>
   )

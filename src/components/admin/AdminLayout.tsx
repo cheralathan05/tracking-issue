@@ -12,9 +12,12 @@ import {
   Bell,
   Search,
   ShieldCheck,
+  MessageSquare,
   Briefcase,
   UserPlus,
   Sparkles,
+  Menu,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +27,7 @@ import { getProfile, logout, type AuthUser } from "@/lib/auth-api";
 const nav = [
   { to: "/admin/dashboard", label: "Overview", icon: LayoutDashboard },
   { to: "/admin/complaints", label: "Complaints", icon: ClipboardList },
+  { to: "/admin/chat", label: "Chat", icon: MessageSquare },
   { to: "/admin/assignment", label: "Smart assignment", icon: Sparkles },
   { to: "/admin/officers", label: "Officers", icon: Briefcase },
   { to: "/admin/invite", label: "Invite officer", icon: UserPlus },
@@ -57,10 +61,14 @@ export function AdminLayout() {
     };
   }, []);
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const closeSidebar = () => setSidebarOpen(false);
+
   return (
-    <div className="min-h-screen bg-secondary/30">
+    <div className="min-h-dvh overflow-hidden bg-secondary/30">
       <div className="flex">
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
+        <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
           <Link
             to="/"
             className="flex items-center gap-2.5 border-b border-sidebar-border px-5 py-4"
@@ -107,8 +115,85 @@ export function AdminLayout() {
           </div>
         </aside>
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        {sidebarOpen ? (
+          <div className="fixed inset-0 z-50 md:hidden">
+            <button
+              type="button"
+              aria-label="Close sidebar backdrop"
+              className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+              onClick={closeSidebar}
+            />
+
+            <aside className="absolute inset-y-0 left-0 flex h-full w-[18rem] max-w-[85vw] flex-col border-r border-sidebar-border/80 bg-sidebar/98 text-sidebar-foreground shadow-2xl backdrop-blur-xl">
+              <div className="flex items-center justify-between gap-3 border-b border-sidebar-border px-5 py-4">
+                <Link to="/" className="flex items-center gap-2.5" onClick={closeSidebar}>
+                  <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-primary">
+                    <ShieldCheck className="h-5 w-5 text-primary-foreground" />
+                  </div>
+                  <div className="leading-tight">
+                    <div className="text-sm font-semibold">Civic Bridge Flow</div>
+                    <div className="text-[10px] uppercase tracking-widest opacity-60">Admin Console</div>
+                  </div>
+                </Link>
+
+                <button
+                  type="button"
+                  aria-label="Close sidebar"
+                  onClick={closeSidebar}
+                  className="grid h-9 w-9 place-items-center rounded-full border border-sidebar-border bg-sidebar-accent/50 text-sidebar-foreground/80 transition hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <nav className="flex-1 space-y-1 p-3">
+                {nav.map((n) => {
+                  const active = path === n.to || path.startsWith(n.to + "/");
+                  return (
+                    <Link
+                      key={n.to}
+                      to={n.to}
+                      onClick={closeSidebar}
+                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition ${
+                        active
+                          ? "bg-sidebar-primary/20 text-sidebar-foreground"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      }`}
+                    >
+                      <n.icon className="h-4 w-4" />
+                      {n.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              <div className="border-t border-sidebar-border p-3">
+                <Link
+                  to="/admin/login"
+                  onClick={() => {
+                    closeSidebar();
+                    void logout();
+                  }}
+                  className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                >
+                  <LogOut className="h-4 w-4" /> Sign out
+                </Link>
+              </div>
+            </aside>
+          </div>
+        ) : null}
+
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-xl md:px-8">
+            <button
+              type="button"
+              aria-label="Open sidebar"
+              onClick={() => setSidebarOpen(true)}
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-border bg-card text-foreground shadow-sm transition hover:bg-accent md:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+
             <div className="relative max-w-md flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input placeholder="Search complaints, citizens, officers…" className="pl-9" />
@@ -130,7 +215,7 @@ export function AdminLayout() {
             </div>
           </header>
 
-          <main className="flex-1 p-4 md:p-8">
+          <main className="flex-1 min-h-0 overflow-auto p-4 md:p-8">
             <Outlet />
           </main>
         </div>

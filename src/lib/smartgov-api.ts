@@ -287,6 +287,39 @@ export function listComplaintMessages(id: string) {
   });
 }
 
+export type ChatRoomRecord = {
+  id: string;
+  complaintId?: string | null;
+  roomType?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export function createComplaintChatRoom(complaintId: string) {
+  return request<{ room: ChatRoomRecord }>(`/chat/rooms/complaint/${encodeURIComponent(complaintId)}`, {
+    method: "POST",
+  });
+}
+
+export function listChatRoomMessages(roomId: string, limit = 100) {
+  return request<{ messages: ComplaintMessageRecord[] }>(`/chat/rooms/${encodeURIComponent(roomId)}/messages`, {
+    method: "GET",
+  }, { limit });
+}
+
+export function sendChatRoomMessage(roomId: string, message: string) {
+  return request<{ message: ComplaintMessageRecord }>(`/chat/rooms/${encodeURIComponent(roomId)}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ message }),
+  });
+}
+
+export function markChatRoomRead(roomId: string) {
+  return request<{ success: boolean }>(`/chat/rooms/${encodeURIComponent(roomId)}/read`, {
+    method: "POST",
+  });
+}
+
 export function sendComplaintMessage(id: string, message: string) {
   return request<{ messageRecord: ComplaintMessageRecord }>(`/complaints/${encodeURIComponent(id)}/messages`, {
     method: "POST",
@@ -788,6 +821,122 @@ export function getOfficerOpsReports() {
 
 export function getOfficerOpsKnowledgeBase() {
   return request<{ knowledgeBase: OfficerKnowledgeDoc[] }>("/officers/ops/knowledge-base", {
+    method: "GET",
+  });
+}
+
+// Admin Governance APIs
+export type SLAStatistics = {
+  total: number;
+  breached: number;
+  warning: number;
+  healthy: number;
+  breachPercentage: number;
+  escalatedCount: number;
+  byDepartment: Record<
+    string,
+    {
+      total: number;
+      breached: number;
+      warning: number;
+    }
+  >;
+};
+
+export type EscalationStatistics = {
+  total: number;
+  active: number;
+  resolved: number;
+  byLevel: {
+    low: number;
+    medium: number;
+    high: number;
+    emergency: number;
+  };
+  escalations: Array<{
+    id: string;
+    complaintId: string;
+    grievanceId: string;
+    title: string;
+    category: string;
+    department: string;
+    level: string;
+    status: string;
+    reason: string;
+    createdAt: string;
+    resolvedAt: string | null;
+  }>;
+};
+
+export type AdminGovernanceDashboard = {
+  summary: {
+    totalComplaints: number;
+    totalOfficers: number;
+    totalEscalations: number;
+    activeEscalations: number;
+  };
+  sla: SLAStatistics;
+  escalations: EscalationStatistics;
+  complaintsByStatus: Record<string, number>;
+  complaintsByDepartment: Record<string, number>;
+  complaintsByPriority: Record<string, number>;
+  recentComplaints: Array<{
+    id: string;
+    grievanceId: string;
+    status: string;
+    priority: string;
+    category: string;
+    department: string;
+    createdAt: string;
+    slaStatus: "breached" | "active";
+    riskScore: number;
+    isEscalated: boolean;
+    escalationLevel: string | null;
+  }>;
+  officers: number;
+};
+
+export function getAdminGovernanceDashboard() {
+  return request<{ data: AdminGovernanceDashboard }>("/admin/governance/dashboard", {
+    method: "GET",
+  });
+}
+
+export function getAdminSLAStatistics() {
+  return request<{
+    statistics: SLAStatistics;
+    dailyTrend: Array<{
+      date: string;
+      submitted: number;
+      breached: number;
+      resolved: number;
+    }>;
+  }>("/admin/governance/sla-stats", {
+    method: "GET",
+  });
+}
+
+export function getAdminEscalationStatistics() {
+  return request<EscalationStatistics>("/admin/governance/escalation-stats", {
+    method: "GET",
+  });
+}
+
+export type DepartmentComplaintsStats = {
+  department: string;
+  totalComplaints: number;
+  resolved: number;
+  resolutionRate: number;
+  breached: number;
+  breachRate: number;
+  escalated: number;
+  escalationRate: number;
+  avgResolutionTimeHours: number;
+  byPriority: Record<string, number>;
+};
+
+export function getAdminComplaintsByDepartment() {
+  return request<DepartmentComplaintsStats[]>("/admin/governance/complaints-by-department", {
     method: "GET",
   });
 }

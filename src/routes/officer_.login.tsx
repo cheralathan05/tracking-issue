@@ -1,22 +1,32 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Briefcase, Lock, User } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { loginAdmin } from "@/lib/auth-api";
 
 export const Route = createFileRoute("/officer_/login")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    email: typeof search.email === "string" ? search.email : undefined,
+  }),
   head: () => ({ meta: [{ title: "Officer sign in — Civic Bridge Flow" }] }),
   component: OfficerLoginPage,
 });
 
 function OfficerLoginPage() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(search.email ?? "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (search.email) {
+      setEmail(search.email);
+    }
+  }, [search.email]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +101,12 @@ function OfficerLoginPage() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link to="/officer/forgot-password" className="text-xs text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
