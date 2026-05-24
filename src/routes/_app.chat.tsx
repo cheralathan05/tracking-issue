@@ -1,15 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { CitizenChatWorkspace } from "@/components/citizen/CitizenChatWorkspace";
+import { createFileRoute } from '@tanstack/react-router'
+import { ChatWorkspace } from '@/components/chat'
 
-export const Route = createFileRoute("/_app/chat")({
-  head: () => ({ meta: [{ title: "Citizen Chat Center — Civic Bridge Flow" }] }),
-  component: CitizenChatRoute,
-});
+export const Route = createFileRoute('/_app/chat')({
+  component: ChatPage,
+})
 
-function CitizenChatRoute() {
-  const { profile } = Route.useRouteContext() as {
-    profile?: { data?: { user?: { id?: string; fullName?: string; email?: string; role?: string } } } | null;
-  };
-
-  return <CitizenChatWorkspace profile={profile?.data?.user ?? null} />;
+function ChatPage() {
+  return (
+    <div className="w-full h-screen">
+      <ChatWorkspace />
+    </div>
+  )
 }

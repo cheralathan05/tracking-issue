@@ -7,7 +7,7 @@ import {
   Home,
   ListChecks,
   LogOut,
-  MessageSquare,
+  MessageCircle,
   Search,
   Settings,
   Shield,
@@ -20,9 +20,9 @@ const nav = [
   { to: "/dashboard", label: "Dashboard", icon: Home },
   { to: "/complaints/new", label: "New Complaint", icon: FilePlus2 },
   { to: "/complaints", label: "My Complaints", icon: ListChecks },
+  { to: "/chat", label: "Chat Center", icon: MessageCircle },
   { to: "/escalations", label: "Escalated", icon: AlertTriangle },
   { to: "/notifications", label: "Notifications", icon: Bell },
-  { to: "/chat", label: "Chat Support", icon: MessageSquare },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
@@ -57,7 +57,7 @@ function CitizenLayoutContent({ initialUser }: { initialUser: AuthUser | null })
             <div className="rounded-2xl border border-sidebar-border bg-sidebar-accent/40 p-4">
               <div className="text-[10px] uppercase tracking-[0.3em] text-sidebar-foreground/55">Live access</div>
               <div className="mt-1 text-sm font-medium text-sidebar-foreground">
-                Track issues, chat, and escalate without leaving the portal.
+                Track issues and escalate without leaving the portal.
               </div>
             </div>
           </div>

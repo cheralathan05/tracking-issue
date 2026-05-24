@@ -147,3 +147,89 @@ chatRouter.post(
     }
   },
 );
+
+// List chat threads (live workspace queue) for current user
+chatRouter.get("/threads", requireAuth, async (req, res, next) => {
+  try {
+    const userId = req.user!.id;
+    const role = String(req.user!.role);
+    const { search, filter } = req.query as any;
+
+    const result = await chatService.listThreadsForUser({
+      userId,
+      role,
+      search: search as string | undefined,
+      filter: (filter as any) || "all",
+    });
+
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Get room workspace context (full state for mission control)
+chatRouter.get("/rooms/:roomId/workspace", requireChatAccess, async (req, res, next) => {
+  try {
+    const rawRoomId = req.params.roomId;
+    const roomId = Array.isArray(rawRoomId) ? rawRoomId[0] : rawRoomId;
+    const userId = req.user!.id;
+    const role = String(req.user!.role);
+
+    const result = await chatService.getRoomWorkspace({
+      roomId,
+      userId,
+      role,
+    });
+
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Add/remove reaction on message
+chatRouter.post("/rooms/:roomId/messages/:messageId/reaction", requireChatAccess, async (req, res, next) => {
+  try {
+    const rawRoomId = req.params.roomId;
+    const rawMessageId = req.params.messageId;
+    const roomId = Array.isArray(rawRoomId) ? rawRoomId[0] : rawRoomId;
+    const messageId = Array.isArray(rawMessageId) ? rawMessageId[0] : rawMessageId;
+    const userId = req.user!.id;
+    const { emoji } = req.body;
+
+    if (!emoji) return next(new Error("emoji required"));
+
+    await chatService.addMessageReaction({
+      roomId,
+      messageId,
+      userId,
+      emoji,
+    });
+
+    res.json({ success: true, message: "Reaction added" });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Pin/unpin message
+chatRouter.post("/rooms/:roomId/messages/:messageId/pin", requireChatAccess, async (req, res, next) => {
+  try {
+    const rawRoomId = req.params.roomId;
+    const rawMessageId = req.params.messageId;
+    const roomId = Array.isArray(rawRoomId) ? rawRoomId[0] : rawRoomId;
+    const messageId = Array.isArray(rawMessageId) ? rawMessageId[0] : rawMessageId;
+    const { pinned } = req.body;
+
+    await chatService.pinMessage({
+      roomId,
+      messageId,
+      pinned: Boolean(pinned),
+    });
+
+    res.json({ success: true, message: pinned ? "Message pinned" : "Message unpinned" });
+  } catch (err) {
+    next(err);
+  }
+});

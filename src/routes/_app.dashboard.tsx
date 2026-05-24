@@ -11,7 +11,6 @@ import {
   FileSearch,
   LifeBuoy,
   MapPinned,
-  MessageSquare,
   ShieldCheck,
   Sparkles,
   TrendingUp,
@@ -176,10 +175,10 @@ function DashboardPage() {
             </div>
             <div className="space-y-3">
               <h1 className="max-w-2xl text-3xl font-semibold tracking-tight md:text-5xl">
-                One place to file, track, chat, and resolve every civic issue.
+                One place to file, track, and resolve every civic issue.
               </h1>
               <p className="max-w-2xl text-sm text-primary-foreground/82 md:text-base">
-                Your portal is now driven by live backend data: complaints, notifications, analytics, chat support, and follow-up actions all appear in one product-grade workspace.
+                Your portal is now driven by live backend data: complaints, notifications, analytics, and follow-up actions all appear in one product-grade workspace.
               </p>
             </div>
 
@@ -189,12 +188,7 @@ function DashboardPage() {
                   <FilePlus2 className="mr-1.5 h-4 w-4" /> File a complaint
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="border-white/20 bg-white/10 text-primary-foreground hover:bg-white/15">
-                <Link to="/chat">
-                  <MessageSquare className="mr-1.5 h-4 w-4" /> Open support chat
-                </Link>
-              </Button>
-              
+
             </div>
           </div>
 
@@ -384,8 +378,7 @@ function DashboardPage() {
                 { to: "/complaints/new", label: "File complaint", icon: FilePlus2 },
                 { to: "/complaints", label: "Track complaints", icon: FileSearch },
                 { to: "/notifications", label: "Review alerts", icon: Bell },
-                { to: "/chat", label: "Open support chat", icon: MessageSquare },
-                
+
               ].map((action) => (
                 <Link key={action.label} to={action.to} className="group flex items-center justify-between rounded-2xl border border-border bg-background px-4 py-3 transition hover:border-primary/40 hover:shadow-sm">
                   <div className="flex items-center gap-3">

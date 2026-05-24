@@ -6,15 +6,17 @@ import {
   LogOut,
   Briefcase,
   Search,
+  ShieldAlert,
+  Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NotificationBell } from "@/components/ui/NotificationBell";
 
 const nav = [
-  { to: "/officer/dashboard", label: "My Dashboard", icon: LayoutDashboard },
+  { to: "/officer/dashboard", label: "Mission Dashboard", icon: LayoutDashboard },
   { to: "/officer/complaints", label: "Assigned Complaints", icon: ClipboardList },
-  { to: "/officer/resolution", label: "Upload Resolution", icon: UploadCloud },
+  { to: "/officer/resolution", label: "Resolution Upload", icon: UploadCloud },
 ] as const;
 
 export function OfficerLayout() {
@@ -66,6 +68,12 @@ export function OfficerLayout() {
               <Input placeholder="Search assigned complaints…" className="pl-9" />
             </div>
             <div className="ml-auto flex items-center gap-2">
+              <span className="hidden items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-[11px] font-medium text-destructive lg:inline-flex">
+                <ShieldAlert className="h-3 w-3" /> Emergency ready
+              </span>
+              <span className="hidden items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium text-emerald-600 lg:inline-flex">
+                <Radio className="h-3 w-3" /> Realtime sync
+              </span>
               <span className="hidden items-center gap-1.5 rounded-full border border-info/30 bg-info/10 px-2.5 py-1 text-[11px] font-medium text-info sm:inline-flex">
                 <Briefcase className="h-3 w-3" /> Field Officer
               </span>

@@ -194,6 +194,9 @@ export interface ComplaintRecord {
   assignedOfficerName?: string | null;
   assignedDepartment?: string | null;
   assignedArea?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  slaDeadline?: string | null;
   evidence: ComplaintEvidence[];
   timeline: ComplaintTimelineEntry[];
   resolutionSummary?: string | null;
@@ -575,6 +578,216 @@ export type ComplaintAnalytics = {
 
 export function getComplaintAnalytics() {
   return request<{ analytics: ComplaintAnalytics }>("/complaints/analytics/personal", {
+    method: "GET",
+  });
+}
+
+export type OfficerOpsShiftStatus = "Online" | "On duty" | "In field" | "Break" | "Offline";
+
+export type OfficerOpsAlert = {
+  id: string;
+  complaintId: string;
+  priority: string;
+  status: string;
+  message: string;
+  createdAt: string;
+};
+
+export type OfficerOpsDashboard = {
+  assignedComplaints: number;
+  activeEmergencies: number;
+  slaBreaches: number;
+  resolvedToday: number;
+  inProgress: number;
+  avgResponseTimeHours: number;
+  citizenRating: number;
+  escalations: number;
+  pendingInspections: number;
+  liveAlerts: OfficerOpsAlert[];
+};
+
+export type OfficerOpsQueueItem = {
+  id: string;
+  complaintId: string;
+  citizenName: string;
+  priority: string;
+  department: string;
+  area: string;
+  city: string;
+  district: string;
+  status: string;
+  escalationLevel: string | null;
+  gps: { latitude: number; longitude: number } | null;
+  distanceKm: number | null;
+  slaDeadline: string | null;
+  slaRiskScore: number;
+  lastUpdate: string;
+  title: string;
+};
+
+export type OfficerOpsEmergency = {
+  id: string;
+  complaintId: string;
+  title: string;
+  category: string;
+  priority: string;
+  status: string;
+  level: string | null;
+  location: string;
+  updatedAt: string;
+};
+
+export type OfficerOpsNavigation = {
+  complaintId: string;
+  destination: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  };
+  source: {
+    latitude: number;
+    longitude: number;
+  };
+  distanceKm: number;
+  etaMinutes: number;
+};
+
+export type OfficerOpsPerformanceMetrics = {
+  avgResolutionSpeedHours: number;
+  citizenRating: number;
+  slaSuccessRate: number;
+  escalationCount: number;
+  attendanceEvents: number;
+  emergencyHandled: number;
+};
+
+export type OfficerOpsReportData = {
+  totals: {
+    total: number;
+    resolved: number;
+    inProgress: number;
+    escalated: number;
+  };
+  byPriority: Record<string, number>;
+  byArea: Record<string, number>;
+  monthlyTrend: Array<{ month: string; total: number; resolved: number }>;
+};
+
+export type OfficerKnowledgeDoc = {
+  id: string;
+  title: string;
+  category: string;
+  summary: string;
+};
+
+export function getOfficerOpsDashboard() {
+  return request<{ dashboard: OfficerOpsDashboard }>("/officers/ops/dashboard", { method: "GET" });
+}
+
+export function getOfficerOpsQueue(query?: {
+  sortBy?: "nearest" | "priority" | "oldest" | "sla" | "emergency";
+  latitude?: number;
+  longitude?: number;
+}) {
+  return request<{ queue: OfficerOpsQueueItem[] }>("/officers/ops/queue", { method: "GET" }, query);
+}
+
+export function getOfficerOpsEmergencyQueue() {
+  return request<{ emergencies: OfficerOpsEmergency[] }>("/officers/ops/emergency", { method: "GET" });
+}
+
+export function startOfficerInspection(
+  complaintId: string,
+  payload?: { latitude?: number; longitude?: number; note?: string },
+) {
+  return request<{ complaint: { id: string; complaintId: string; status: string; updatedAt: string } }>(
+    `/officers/ops/${encodeURIComponent(complaintId)}/inspection/start`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload ?? {}),
+    },
+  );
+}
+
+export function updateOfficerGps(
+  complaintId: string,
+  payload: { latitude: number; longitude: number; etaMinutes?: number; note?: string },
+) {
+  return request<{ complaint: { id: string; complaintId: string; latitude: number | null; longitude: number | null; updatedAt: string } }>(
+    `/officers/ops/${encodeURIComponent(complaintId)}/gps`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function getOfficerNavigationPlan(
+  complaintId: string,
+  payload: { latitude: number; longitude: number },
+) {
+  return request<{ navigation: OfficerOpsNavigation }>(
+    `/officers/ops/${encodeURIComponent(complaintId)}/navigation`,
+    { method: "GET" },
+    payload,
+  );
+}
+
+export function escalateOfficerComplaint(
+  complaintId: string,
+  payload: { reason: string; level?: "low" | "medium" | "high" | "emergency" },
+) {
+  return request<{ escalation: EscalationRecord }>(`/officers/ops/${encodeURIComponent(complaintId)}/escalate`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function submitOfficerResolution(
+  complaintId: string,
+  payload: {
+    resolutionSummary: string;
+    citizenConfirmation: boolean;
+    completionTimestamp?: string;
+    beforeAfterPhotos?: Array<{ name: string; type: string; size: number; dataUrl: string }>;
+  },
+) {
+  return request<{ complaint: { id: string; complaintId: string; status: string; resolutionSummary: string | null; updatedAt: string } }>(
+    `/officers/ops/${encodeURIComponent(complaintId)}/resolve`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function getOfficerOpsShift() {
+  return request<{ shift: { status: OfficerOpsShiftStatus; updatedAt: string | null } }>("/officers/ops/shift", {
+    method: "GET",
+  });
+}
+
+export function updateOfficerOpsShift(payload: { status: OfficerOpsShiftStatus; note?: string }) {
+  return request<{ shift: { status: OfficerOpsShiftStatus; updatedAt: string } }>("/officers/ops/shift", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getOfficerOpsPerformance() {
+  return request<{ performance: OfficerOpsPerformanceMetrics }>("/officers/ops/performance", {
+    method: "GET",
+  });
+}
+
+export function getOfficerOpsReports() {
+  return request<{ reports: OfficerOpsReportData }>("/officers/ops/reports", {
+    method: "GET",
+  });
+}
+
+export function getOfficerOpsKnowledgeBase() {
+  return request<{ knowledgeBase: OfficerKnowledgeDoc[] }>("/officers/ops/knowledge-base", {
     method: "GET",
   });
 }
