@@ -232,7 +232,13 @@ export const complaintQuerySchema = z.object({
   view: z.enum(["all", "mine", "assigned"]).optional().default("all"),
   status: complaintStatusSchema.optional(),
   search: z.string().trim().optional(),
+  district: z.string().trim().optional(),
+  department: z.string().trim().optional(),
+  priority: z.string().trim().optional(),
+  officer: z.string().trim().optional(),
+  escalationLevel: z.string().trim().optional(),
   limit: z.coerce.number().int().positive().max(500).optional(),
+  offset: z.coerce.number().int().min(0).optional(),
   summaryOnly: z.preprocess((value) => value === true || value === "true", z.boolean()).optional().default(false),
 });
 

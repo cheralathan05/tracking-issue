@@ -260,3 +260,31 @@ export async function checkAndEscalateSLABreaches() {
     escalated: escalations.filter(Boolean).length,
   };
 }
+
+/**
+ * Escalation dashboard summary for admin views
+ */
+export async function getEscalationDashboard() {
+  const totalEscalations = await prisma.escalation.count();
+
+  const pending = await prisma.escalation.count({ where: { status: "active" } });
+
+  const resolved = await prisma.escalation.count({ where: { status: "resolved" } });
+
+  // Define critical as emergency-level or linked complaint with Critical priority
+  const critical = await prisma.escalation.count({
+    where: {
+      OR: [
+        { level: "emergency" },
+        { complaint: { priority: "Critical" } },
+      ],
+    },
+  });
+
+  return {
+    totalEscalations,
+    pending,
+    critical,
+    resolved,
+  };
+}

@@ -4,6 +4,7 @@ import {
   createEscalation,
   listEscalations,
   getEscalationDetails,
+  getEscalationDashboard,
   updateEscalation,
 } from "../services/escalation.service.js";
 import { validateBody } from "../middleware/validate.middleware.js";
@@ -55,6 +56,16 @@ escalationRouter.get("/", requireAuth, async (req, res, next) => {
       filters
     );
     res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Dashboard summary
+escalationRouter.get("/dashboard", requireAuth, async (req, res, next) => {
+  try {
+    const result = await getEscalationDashboard();
+    res.status(200).json({ success: true, data: result });
   } catch (err) {
     next(err);
   }

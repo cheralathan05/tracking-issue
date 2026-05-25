@@ -8,7 +8,7 @@ export const Route = createFileRoute('/admin/chat')({
 
 function AdminChat() {
   return (
-    <div className="-m-4 h-full min-h-0 w-[calc(100%+2rem)] overflow-hidden bg-[#040813] text-white md:-m-8 md:w-[calc(100%+4rem)]">
+    <div className="-m-4 flex min-h-dvh w-[calc(100%+2rem)] flex-col overflow-x-hidden overflow-y-auto bg-[#040813] text-white md:-m-8 md:w-[calc(100%+4rem)]">
       <ChatWorkspace variant="admin" />
     </div>
   )

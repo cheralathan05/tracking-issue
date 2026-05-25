@@ -1,21 +1,35 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  ClipboardList,
-  CheckCircle2,
   AlertTriangle,
-  Clock,
-  Users,
-  TrendingUp,
   ArrowRight,
   Building2,
-  MessageSquare,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  RefreshCw,
+  Search,
+  Shield,
+  UserCircle2,
 } from "lucide-react";
+import { z } from "zod";
+
 import { Button } from "@/components/ui/button";
-import { statusTone, priorityTone } from "@/lib/complaint-status";
-import { fetchComplaintSummary, listComplaints, listOfficers, type ComplaintRecord, type ComplaintSummary, type OfficerSummary } from "@/lib/smartgov-api";
+import { priorityTone, statusTone } from "@/lib/complaint-status";
+import {
+  fetchAdminDashboard,
+  searchAdminDashboard,
+  type AdminDashboardResponse,
+  type AdminSearchResult,
+} from "@/lib/smartgov-api";
+import { useSocket } from "@/hooks/useSocket";
+
+const dashboardSearchSchema = z.object({
+  q: z.string().optional(),
+});
 
 export const Route = createFileRoute("/admin/dashboard")({
+  validateSearch: dashboardSearchSchema,
   head: () => ({ meta: [{ title: "Admin Overview — Civic Bridge Flow" }] }),
   component: AdminDashboard,
 });
@@ -23,58 +37,89 @@ export const Route = createFileRoute("/admin/dashboard")({
 const kpiMeta = [
   { label: "Total Complaints", icon: ClipboardList, tint: "text-primary bg-primary/10" },
   { label: "Resolved", icon: CheckCircle2, tint: "text-success bg-success/10" },
-  { label: "Pending / In Progress", icon: Clock, tint: "text-info bg-info/10" },
+  { label: "Pending", icon: Clock, tint: "text-info bg-info/10" },
   { label: "Escalations", icon: AlertTriangle, tint: "text-destructive bg-destructive/10" },
-];
+] as const;
 
 function AdminDashboard() {
-  const [summary, setSummary] = useState<ComplaintSummary | null>(null);
-  const [recent, setRecent] = useState<ComplaintRecord[]>([]);
-  const [officers, setOfficers] = useState<OfficerSummary[]>([]);
-  const [complaints, setComplaints] = useState<ComplaintRecord[]>([]);
+  const search = Route.useSearch();
+  const [dashboard, setDashboard] = useState<AdminDashboardResponse | null>(null);
+  const [searchResults, setSearchResults] = useState<AdminSearchResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { on } = useSocket(undefined, true);
+
+  const query = search.q?.trim() ?? "";
+
+  const loadDashboard = useCallback(async (isBackground = false) => {
+    if (isBackground) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    setError(null);
+
+    try {
+      const [dashboardResult, searchResult] = await Promise.all([
+        fetchAdminDashboard(),
+        query ? searchAdminDashboard(query) : Promise.resolve(null),
+      ]);
+
+      setDashboard(dashboardResult);
+      setSearchResults(searchResult);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Unable to load governance dashboard");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [query]);
 
   useEffect(() => {
-    let mounted = true;
+    void loadDashboard(false);
+  }, [loadDashboard]);
 
-    Promise.all([fetchComplaintSummary(), listComplaints({ view: "all" }), listOfficers()]).then(
-      ([summaryResult, complaintsResult, officersResult]) => {
-        if (!mounted) return;
-        setSummary(summaryResult);
-        setRecent(complaintsResult.complaints.slice(0, 4));
-        setComplaints(complaintsResult.complaints);
-        setOfficers(officersResult.officers);
-      },
-    );
+  useEffect(() => {
+    const refresh = () => {
+      void loadDashboard(true);
+    };
+
+    const disposeComplaintUpdated = on("complaint_updated", refresh);
+    const disposeEscalation = on("escalation_created", refresh);
+    const disposeNotification = on("notification", refresh);
 
     return () => {
-      mounted = false;
+      disposeComplaintUpdated?.();
+      disposeEscalation?.();
+      disposeNotification?.();
     };
-  }, []);
+  }, [loadDashboard, on]);
 
-  const departments = useMemo(() => {
-    const openStatuses = new Set(["Submitted", "Under Review", "Assigned", "In Progress", "Awaiting Information"]);
-    const stats = new Map<string, { name: string; open: number; resolved: number; sla: number }>();
+  const summary = dashboard?.summary;
+  const recentComplaints = dashboard?.recentComplaints ?? [];
+  const departments = dashboard?.departmentPerformance ?? [];
 
-    complaints.forEach((complaint) => {
-      const name = complaint.department || "Unknown";
-      const entry = stats.get(name) ?? { name, open: 0, resolved: 0, sla: 0 };
-      if (openStatuses.has(complaint.status)) {
-        entry.open += 1;
-      }
-      if (complaint.status === "Resolved" || complaint.status === "Closed") {
-        entry.resolved += 1;
-      }
-      stats.set(name, entry);
-    });
+  const kpiValue = (label: (typeof kpiMeta)[number]["label"]) => {
+    if (!summary) {
+      return "-";
+    }
 
-    return Array.from(stats.values())
-      .map((entry) => ({
-        ...entry,
-        sla: Math.round(((entry.open + entry.resolved) > 0 ? (entry.resolved / (entry.open + entry.resolved)) : 0) * 100),
-      }))
-      .sort((a, b) => b.open - a.open)
-      .slice(0, 5);
-  }, [complaints]);
+    if (label === "Total Complaints") {
+      return summary.totalComplaints;
+    }
+
+    if (label === "Resolved") {
+      return summary.resolvedComplaints;
+    }
+
+    if (label === "Pending") {
+      return summary.pendingComplaints;
+    }
+
+    return summary.escalations;
+  };
 
   return (
     <div className="space-y-8">
@@ -85,36 +130,37 @@ function AdminDashboard() {
             Real-time monitoring across all departments and districts.
           </p>
         </div>
-        <Button asChild className="bg-gradient-primary text-primary-foreground shadow-elegant">
-          <Link to="/admin/complaints">
-            Review complaints <ArrowRight className="ml-1.5 h-4 w-4" />
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          {refreshing ? (
+            <span className="inline-flex items-center text-xs text-muted-foreground">
+              <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Updating live metrics...
+            </span>
+          ) : null}
+          <Button asChild className="bg-gradient-primary text-primary-foreground shadow-elegant">
+            <Link to="/admin/complaints">
+              Review complaints <ArrowRight className="ml-1.5 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
       </div>
 
+      {error ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {kpiMeta.map((k) => (
-          <div key={k.label} className="rounded-xl border border-border bg-card p-5 shadow-card">
+        {kpiMeta.map((item) => (
+          <div key={item.label} className="rounded-xl border border-border bg-card p-5 shadow-card">
             <div className="flex items-start justify-between">
-              <div className={`grid h-10 w-10 place-items-center rounded-lg ${k.tint}`}>
-                <k.icon className="h-5 w-5" />
+              <div className={`grid h-10 w-10 place-items-center rounded-lg ${item.tint}`}>
+                <item.icon className="h-5 w-5" />
               </div>
-              <span className="inline-flex items-center gap-0.5 text-xs font-medium text-success">
-                <TrendingUp className="h-3 w-3" /> Live
-              </span>
+              <span className="text-xs text-muted-foreground">Live</span>
             </div>
-            <div className="mt-4 text-2xl font-bold tracking-tight">
-              {summary
-                ? k.label === "Total Complaints"
-                  ? summary.total
-                  : k.label === "Resolved"
-                  ? summary.resolved
-                  : k.label === "Pending / In Progress"
-                  ? summary.submitted + summary.assigned + summary.inProgress
-                  : summary.escalated
-                : "—"}
-            </div>
-            <div className="text-xs text-muted-foreground">{k.label}</div>
+            <div className="mt-4 text-2xl font-bold tracking-tight">{loading ? "-" : kpiValue(item.label)}</div>
+            <div className="text-xs text-muted-foreground">{item.label}</div>
           </div>
         ))}
       </div>
@@ -124,7 +170,7 @@ function AdminDashboard() {
           <div className="flex items-center justify-between border-b border-border px-5 py-4">
             <div>
               <h2 className="font-semibold">Recently registered complaints</h2>
-              <p className="text-xs text-muted-foreground">Pending review &amp; assignment.</p>
+              <p className="text-xs text-muted-foreground">Pending review and assignment.</p>
             </div>
             <Button asChild variant="ghost" size="sm">
               <Link to="/admin/complaints">
@@ -133,38 +179,37 @@ function AdminDashboard() {
             </Button>
           </div>
           <div className="divide-y divide-border">
-            {recent.map((c) => (
+            {recentComplaints.slice(0, 8).map((complaint) => (
               <Link
-                key={c.grievanceId}
+                key={complaint.grievanceId}
                 to="/admin/complaints/$id"
-                params={{ id: c.grievanceId }}
+                params={{ id: complaint.grievanceId }}
                 className="flex items-start gap-4 px-5 py-4 transition hover:bg-secondary/50"
               >
                 <span
-                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${priorityTone(c.priority)}`}
+                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${priorityTone(String(complaint.priority))}`}
                 >
-                  {c.priority}
+                  {complaint.priority}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-muted-foreground">{c.grievanceId}</span>
+                    <span className="text-xs font-mono text-muted-foreground">{complaint.grievanceId}</span>
                     <span
-                      className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusTone(c.status)}`}
+                      className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusTone(String(complaint.status))}`}
                     >
-                      {c.status}
+                      {complaint.status}
                     </span>
                   </div>
-                  <div className="mt-0.5 truncate font-medium">{c.title}</div>
+                  <div className="mt-0.5 truncate font-medium">{complaint.title}</div>
                   <div className="text-xs text-muted-foreground">
-                    {c.department} · {c.city}, {c.district}
+                    {complaint.department} · {complaint.city}, {complaint.district}
                   </div>
-                </div>
-                <div className="hidden text-right text-xs text-muted-foreground sm:block">
-                  <div>Filed {c.createdAt}</div>
-                  <div>{c.assignedOfficerName ? `Officer ${c.assignedOfficerName}` : "Pending assignment"}</div>
                 </div>
               </Link>
             ))}
+            {!loading && recentComplaints.length === 0 ? (
+              <div className="px-5 py-10 text-center text-sm text-muted-foreground">No complaints available.</div>
+            ) : null}
           </div>
         </div>
 
@@ -173,58 +218,89 @@ function AdminDashboard() {
             <Building2 className="h-4 w-4 text-primary" />
             <h2 className="font-semibold">Department performance</h2>
           </div>
-          <p className="text-xs text-muted-foreground">SLA compliance over last 30 days.</p>
+          <p className="text-xs text-muted-foreground">SLA compliance and current workload.</p>
           <div className="mt-4 space-y-4">
-            {departments.map((d) => (
-              <div key={d.name}>
+            {departments.slice(0, 6).map((department) => (
+              <div key={department.name}>
                 <div className="flex items-center justify-between text-xs">
-                  <div className="font-medium">{d.name}</div>
+                  <div className="font-medium">{department.name}</div>
                   <div className="text-muted-foreground">
-                    {d.open} open · {d.resolved} resolved
+                    {department.pendingComplaints} open · {department.resolvedComplaints} resolved
                   </div>
                 </div>
                 <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-secondary">
                   <div
-                    className={`h-full rounded-full ${d.sla >= 90 ? "bg-success" : d.sla >= 80 ? "bg-info" : "bg-warning"}`}
-                    style={{ width: `${d.sla}%` }}
+                    className={`h-full rounded-full ${department.slaCompliance >= 90 ? "bg-success" : department.slaCompliance >= 75 ? "bg-info" : "bg-warning"}`}
+                    style={{ width: `${department.slaCompliance}%` }}
                   />
                 </div>
-                <div className="mt-1 text-[10px] text-muted-foreground">SLA {d.sla}%</div>
+                <div className="mt-1 text-[10px] text-muted-foreground">
+                  SLA {department.slaCompliance}% · Avg response {department.avgResponseHours}h
+                </div>
               </div>
             ))}
+            {!loading && departments.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No department metrics available yet.</div>
+            ) : null}
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-card">
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-primary" />
-          <h2 className="font-semibold">Quick actions</h2>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-4">
-          {[
-            { to: "/admin/complaints", label: "Review complaints", icon: ClipboardList },
-            { to: "/admin/departments", label: "Manage departments", icon: Building2 },
-            { to: "/admin/users", label: "Citizens & officers", icon: Users },
-            { to: "/admin/analytics", label: "Analytics & reports", icon: TrendingUp },
-            { to: "/chat", label: "Admin Chat", icon: MessageSquare },
-          ].map((q) => (
-            <Link
-              key={q.label}
-              to={q.to}
-              className="group flex items-center justify-between rounded-lg border border-border p-3 transition hover:border-primary/40 hover:bg-secondary/50"
-            >
-              <div className="flex items-center gap-3">
-                <span className="grid h-9 w-9 place-items-center rounded-md bg-secondary text-primary">
-                  <q.icon className="h-4 w-4" />
-                </span>
-                <span className="text-sm font-medium">{q.label}</span>
+      {query && searchResults ? (
+        <div className="rounded-xl border border-border bg-card p-5 shadow-card">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-primary" />
+              <h2 className="font-semibold">Search results for "{query}"</h2>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {searchResults.counts.complaints + searchResults.counts.users + searchResults.counts.officers + searchResults.counts.departments} matches
+            </span>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <ClipboardList className="h-4 w-4 text-primary" /> Complaints ({searchResults.counts.complaints})
               </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5" />
-            </Link>
-          ))}
+              {searchResults.complaints.slice(0, 5).map((item) => (
+                <Link key={item.id} to="/admin/complaints/$id" params={{ id: item.grievanceId }} className="block text-sm text-muted-foreground hover:text-foreground">
+                  {item.grievanceId} · {item.title}
+                </Link>
+              ))}
+            </div>
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <UserCircle2 className="h-4 w-4 text-primary" /> Users ({searchResults.counts.users})
+              </div>
+              {searchResults.users.slice(0, 5).map((item) => (
+                <Link key={item.id} to="/admin/users" className="block text-sm text-muted-foreground hover:text-foreground">
+                  {item.fullName} · {item.role}
+                </Link>
+              ))}
+            </div>
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Shield className="h-4 w-4 text-primary" /> Officers ({searchResults.counts.officers})
+              </div>
+              {searchResults.officers.slice(0, 5).map((item) => (
+                <Link key={item.id} to="/admin/officers" className="block text-sm text-muted-foreground hover:text-foreground">
+                  {item.fullName} · {item.department || "Unassigned"}
+                </Link>
+              ))}
+            </div>
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Building2 className="h-4 w-4 text-primary" /> Departments ({searchResults.counts.departments})
+              </div>
+              {searchResults.departments.slice(0, 5).map((item) => (
+                <Link key={item.name} to="/admin/departments" className="block text-sm text-muted-foreground hover:text-foreground">
+                  {item.name} · {item.complaintCount} complaints · {item.officerCount} officers
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

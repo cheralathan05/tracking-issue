@@ -20,7 +20,6 @@ import {
   pickSuggestedOfficer,
 } from "../utils/complaint-routing.js";
 import { createNotification, createNotificationsForRole } from "./notification.service.js";
-import { calculateSLADeadline } from "../constants/sla.js";
 
 const adminRoles = new Set(["super_admin", "state_admin", "district_officer", "department_officer", "admin", "officer"]);
 
@@ -139,7 +138,6 @@ export async function createComplaint(input: ComplaintSubmissionInput, reporterU
 
   const grievanceId = await ensureUniqueComplaintId();
   const now = new Date();
-  const slaDeadline = calculateSLADeadline(input.priority, input.category);
   const timeline = [
     buildTimelineEntry(
       "Complaint submitted",
@@ -171,7 +169,6 @@ export async function createComplaint(input: ComplaintSubmissionInput, reporterU
       suggestedOfficerName: suggestedOfficer?.fullName ?? null,
       evidence: toJsonValue(input.evidence),
       timeline: toJsonValue(timeline),
-      slaDeadline,
     },
     include: {
       assignedOfficer: { select: officerSummarySelect },
@@ -320,7 +317,43 @@ export async function listComplaints(
     ];
   }
 
+  if (query.district) {
+    where.district = query.district;
+  }
+
+  if (query.department) {
+    where.department = query.department;
+  }
+
+  if (query.priority) {
+    where.priority = query.priority;
+  }
+
+  if (query.officer) {
+    where.assignedOfficerName = query.officer;
+  }
+
+  if (query.escalationLevel) {
+    // map UI labels like "Level 1" -> escalation.level values
+    const levelMap: Record<string, string> = {
+      "Level 1": "low",
+      "Level 2": "medium",
+      "Level 3": "high",
+      "Level 4": "emergency",
+      low: "low",
+      medium: "medium",
+      high: "high",
+      emergency: "emergency",
+    };
+
+    const mapped = levelMap[query.escalationLevel] ?? undefined;
+    if (mapped) {
+      where.escalation = { level: mapped } as any;
+    }
+  }
+
   const take = query.limit && Number.isFinite(query.limit) ? Math.min(query.limit, 500) : undefined;
+  const skip = query.offset && Number.isFinite(query.offset) ? Number(query.offset) : undefined;
 
   if (query.summaryOnly) {
     const complaints = await prisma.complaint.findMany({

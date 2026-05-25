@@ -155,6 +155,8 @@
   body,
   #root {
     height: 100%;
+    margin: 0;
+    padding: 0;
   }
   body {
     margin: 0;
@@ -163,7 +165,10 @@
     color: var(--color-foreground);
     font-feature-settings: "cv11", "ss01";
     overflow-x: hidden;
-    overscroll-behavior: none;
+    /* allow vertical scrolling by default */
+    overflow-y: auto;
+    /* restore default overscroll behavior so scroll chaining works */
+    overscroll-behavior: auto;
   }
   h1, h2, h3, h4 { letter-spacing: -0.02em; }
 }

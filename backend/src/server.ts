@@ -4,7 +4,7 @@ import { prisma } from "./config/prisma.js";
 import http from "http";
 import * as chatService from "./services/chat.service.js";
 import { initSocket } from "./socket.js";
-import { startScheduledTasks, stopScheduledTasks } from "./scheduler.js";
+import { checkAndEscalateSLABreaches } from "./services/escalation.service.js";
 
 async function bootstrap() {
   try {
@@ -184,16 +184,27 @@ async function bootstrap() {
       }
     });
 
-    server.listen(currentPort, async () => {
+    server.listen(currentPort, () => {
       console.log(`SmartGov auth backend listening on port ${currentPort}`);
-      
-      // Start scheduled tasks after server is ready
-      try {
-        await startScheduledTasks();
-        console.log("✓ All scheduled tasks initialized");
-      } catch (error) {
-        console.error("Failed to start scheduled tasks:", error);
-      }
+      // Run SLA checker once at startup
+      void checkAndEscalateSLABreaches()
+        .then((r) => {
+          if (r && (r as any).escalated) {
+            console.log(`SLA checker run at startup, escalated ${(r as any).escalated} complaints`);
+          }
+        })
+        .catch((e) => console.error("SLA checker failed on startup:", e));
+
+      // Schedule SLA checker every 5 minutes
+      setInterval(() => {
+        void checkAndEscalateSLABreaches()
+          .then((r) => {
+            if (r && (r as any).escalated) {
+              console.log(`SLA checker escalated ${(r as any).escalated} complaints`);
+            }
+          })
+          .catch((e) => console.error("SLA checker failed:", e));
+      }, 5 * 60 * 1000);
     });
   } catch (error) {
     console.error("Failed to start SmartGov auth backend", error);
@@ -202,15 +213,11 @@ async function bootstrap() {
 }
 
 process.on("SIGINT", async () => {
-  console.log("\nReceived SIGINT signal, shutting down gracefully...");
-  stopScheduledTasks();
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on("SIGTERM", async () => {
-  console.log("Received SIGTERM signal, shutting down gracefully...");
-  stopScheduledTasks();
   await prisma.$disconnect();
   process.exit(0);
 });

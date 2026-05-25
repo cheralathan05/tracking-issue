@@ -14,6 +14,7 @@ import { notificationRouter } from "./routes/notification.routes.js";
 import { escalationRouter } from "./routes/escalation.routes.js";
 import { feedbackRouter } from "./routes/feedback.routes.js";
 import { adminRouter } from "./routes/admin.routes.js";
+import { departmentRouter } from "./routes/department.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import { AppError } from "./utils/errors.js";
 
@@ -72,6 +73,7 @@ app.use("/api/notifications", notificationRouter);
 app.use("/api/escalations", escalationRouter);
 app.use("/api/feedback", feedbackRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/departments", departmentRouter);
 
 app.use((_req, _res, next) => {
   next(new AppError("Route not found", 404));

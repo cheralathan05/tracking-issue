@@ -32,7 +32,10 @@ import {
 import { statusTone, priorityTone, type ComplaintStatus } from "@/lib/complaint-status";
 import {
   fetchComplaintSummary,
+  fetchEscalationDashboard,
   listComplaints,
+  assignComplaint,
+  updateComplaintStatus,
   type ComplaintListResult,
   type ComplaintRecord,
   type ComplaintSummary,
@@ -119,25 +122,63 @@ function EscalationManagementCenter() {
     let active = true;
     setLoading(true);
 
-    Promise.all([listComplaints({ view: "all", status: "Escalated" }), fetchComplaintSummary()])
-      .then(([result, summaryResult]) => {
+    const fetchInitial = async () => {
+      try {
+        const result = await listComplaints({ view: "all", status: "Escalated", limit: 200 });
+        const summaryResult = await fetchEscalationDashboard();
         if (!active) return;
         setComplaints(result.complaints);
         setSummary(summaryResult);
-      })
-      .catch(() => {
+      } catch (e) {
         if (!active) return;
         setComplaints([]);
-      })
-      .finally(() => {
+      } finally {
         if (!active) return;
         setLoading(false);
-      });
+      }
+    };
+
+    fetchInitial();
 
     return () => {
       active = false;
     };
   }, []);
+
+  // Server-side filters: refetch when any filter/search changes
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+
+    const fetchFiltered = async () => {
+      try {
+        const query: any = { view: "all", status: "Escalated", limit: 200 };
+        if (filterDistrict !== "All") query.district = filterDistrict;
+        if (filterDepartment !== "All") query.department = filterDepartment;
+        if (filterPriority !== "All") query.priority = filterPriority;
+        if (filterOfficer !== "All") query.officer = filterOfficer;
+        if (filterLevel !== "All") query.escalationLevel = filterLevel;
+        if (search) query.search = search;
+
+        const result = await listComplaints(query);
+        if (!active) return;
+        setComplaints(result.complaints);
+      } catch (e) {
+        if (!active) return;
+        setComplaints([]);
+      } finally {
+        if (!active) return;
+        setLoading(false);
+      }
+    };
+
+    // debounce quick typing/changes
+    const t = setTimeout(() => void fetchFiltered(), 150);
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
+  }, [filterDistrict, filterDepartment, filterPriority, filterOfficer, filterLevel, search]);
 
   const districts = useMemo(() => ["All", ...Array.from(new Set(complaints.map((item) => item.district).filter(Boolean)))], [complaints]);
   const departments = useMemo(() => ["All", ...Array.from(new Set(complaints.map((item) => item.department).filter(Boolean)))], [complaints]);
@@ -422,6 +463,36 @@ function EscalationManagementCenter() {
                         </Button>
                         <Button size="sm" variant="ghost" onClick={() => openComplaint(complaint)}>
                           Chat
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={async () => {
+                            if (!confirm(`Reassign ${complaint.grievanceId} to suggested officer?`)) return;
+                            try {
+                              await assignComplaint(complaint.id, { useSuggestedOfficer: true });
+                              alert("Reassignment requested");
+                            } catch (e: any) {
+                              alert(e?.message || "Reassign failed");
+                            }
+                          }}
+                        >
+                          Reassign
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={async () => {
+                            if (!confirm(`Increase priority of ${complaint.grievanceId} to Critical?`)) return;
+                            try {
+                              await updateComplaintStatus(complaint.id, { status: "Escalated" as any, note: "Priority raised to Critical", resolutionSummary: undefined });
+                              alert("Priority increased (status set to Escalated)");
+                            } catch (e: any) {
+                              alert(e?.message || "Priority update failed");
+                            }
+                          }}
+                        >
+                          Increase Priority
                         </Button>
                       </div>
                     </td>

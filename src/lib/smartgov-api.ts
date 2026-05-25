@@ -221,6 +221,152 @@ export interface ComplaintSummary {
   total: number;
 }
 
+export interface DepartmentRecord {
+  name: string;
+  complaintCount: number;
+  officerCount: number;
+}
+
+export interface AdminComplaintStats {
+  total: number;
+  pending: number;
+  slaBreached: number;
+  statusCounts: {
+    submitted: number;
+    underReview: number;
+    assigned: number;
+    inProgress: number;
+    awaitingInformation: number;
+    resolved: number;
+    escalated: number;
+    rejected: number;
+    closed: number;
+  };
+  departmentWorkload: Array<{ department: string; count: number }>;
+  officerWorkload: Array<{ officerId: string | null; officerName: string; count: number }>;
+}
+
+export interface AdminComplaintSearchResult {
+  query: string;
+  complaintCount: number;
+  complaints: ComplaintRecord[];
+}
+
+export interface AdminDashboardComplaintItem {
+  id: string;
+  grievanceId: string;
+  reporterName: string;
+  title: string;
+  department: string;
+  district: string;
+  city: string;
+  status: ComplaintStatus | string;
+  priority: ComplaintPriority | string;
+  assignedOfficerName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminDepartmentPerformance {
+  name: string;
+  totalComplaints: number;
+  resolvedComplaints: number;
+  pendingComplaints: number;
+  escalationCount: number;
+  slaCompliance: number;
+  avgResponseHours: number;
+  resolutionRate: number;
+}
+
+export interface AdminDashboardResponse {
+  summary: {
+    totalComplaints: number;
+    resolvedComplaints: number;
+    pendingComplaints: number;
+    escalations: number;
+    criticalComplaints: number;
+    registeredCitizens: number;
+    activeOfficers: number;
+    offlineOfficers: number;
+  };
+  escalationMetrics: {
+    totalEscalations: number;
+    openEscalations: number;
+    resolvedEscalations: number;
+    criticalEscalations: number;
+    breachedSlaCases: number;
+  };
+  citizenMetrics: {
+    registeredCitizens: number;
+    activeComplaints: number;
+    feedbackCount: number;
+    averageRating: number;
+  };
+  officerMetrics: {
+    totalOfficers: number;
+    activeOfficers: number;
+    offlineOfficers: number;
+    departmentAssignments: Array<{ department: string; count: number }>;
+    topOfficers: Array<{
+      id: string;
+      fullName: string;
+      email: string;
+      department: string | null;
+      jurisdictionArea: string | null;
+      activeComplaints: number;
+      resolvedComplaints: number;
+      lastLoginAt: string | null;
+    }>;
+  };
+  departmentPerformance: AdminDepartmentPerformance[];
+  recentComplaints: AdminDashboardComplaintItem[];
+}
+
+export interface AdminSearchResult {
+  query: string;
+  counts: {
+    complaints: number;
+    users: number;
+    officers: number;
+    departments: number;
+  };
+  complaints: AdminDashboardComplaintItem[];
+  users: Array<{
+    id: string;
+    fullName: string;
+    username: string | null;
+    email: string;
+    mobile: string;
+    state: string;
+    district: string;
+    department: string | null;
+    role: string;
+    isVerified: boolean;
+    emailVerified: boolean;
+    createdAt: string;
+  }>;
+  officers: Array<{
+    id: string;
+    fullName: string;
+    username: string | null;
+    email: string;
+    mobile: string;
+    department: string | null;
+    jurisdictionArea: string | null;
+    officerCode: string | null;
+    role: string;
+    isVerified: boolean;
+    emailVerified: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+  departments: Array<{
+    name: string;
+    complaintCount: number;
+    officerCount: number;
+  }>;
+}
+
 export interface OfficerInvitationRecord {
   id: string;
   code: string;
@@ -273,9 +419,87 @@ export function listComplaints(query?: {
   search?: string;
   limit?: number;
   summaryOnly?: boolean;
+  district?: string;
+  department?: string;
+  priority?: string;
+  officer?: string;
+  escalationLevel?: string;
+  offset?: number;
 }) {
   return request<ComplaintListResult>("/complaints", { method: "GET" }, query as Record<string, string | number | boolean | null | undefined>);
 }
+
+export function listAdminComplaints(query?: {
+  status?: string;
+  q?: string;
+  department?: string;
+  officerId?: string;
+  priority?: string;
+  escalated?: boolean;
+  limit?: number;
+  offset?: number;
+}) {
+  return request<ComplaintListResult>(
+    "/admin/complaints",
+    { method: "GET" },
+    query as Record<string, string | number | boolean | null | undefined>,
+  );
+}
+
+export function searchAdminComplaints(query: string, filters?: {
+  status?: string;
+  department?: string;
+  officerId?: string;
+  priority?: string;
+  escalated?: boolean;
+  limit?: number;
+  offset?: number;
+}) {
+  return request<AdminComplaintSearchResult>(
+    "/admin/complaints/search",
+    { method: "GET" },
+    {
+      q: query,
+      ...(filters ?? {}),
+    } as Record<string, string | number | boolean | null | undefined>,
+  );
+}
+
+export function fetchAdminComplaintStats() {
+  return request<AdminComplaintStats>("/admin/complaints/stats", { method: "GET" });
+}
+
+export function listDepartments() {
+  return request<{ departments: DepartmentRecord[] }>("/departments", { method: "GET" });
+}
+
+export async function exportAdminComplaintsCsv(query?: {
+  status?: string;
+  q?: string;
+  department?: string;
+  officerId?: string;
+  priority?: string;
+  escalated?: boolean;
+}) {
+  let response: Response;
+
+  try {
+    response = await fetch(buildUrl("/admin/complaints/export", query as Record<string, string | number | boolean | null | undefined>), {
+      method: "GET",
+      credentials: "include",
+    });
+  } catch {
+    throw new Error("Unable to reach the SmartGov backend. Make sure the backend is running.");
+  }
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as ApiResponse<unknown> | null;
+    throw new Error(payload?.message ?? "Failed to export complaints");
+  }
+
+  return response.blob();
+}
+
 
 export function getComplaint(id: string) {
   return request<{ complaint: ComplaintRecord }>(`/complaints/${encodeURIComponent(id)}`, { method: "GET" });
@@ -357,6 +581,30 @@ export function assignComplaint(
 
 export function fetchComplaintSummary() {
   return request<ComplaintSummary>("/complaints/summary", { method: "GET" });
+}
+
+export function fetchAdminDashboard() {
+  return request<AdminDashboardResponse>("/admin/dashboard", { method: "GET" });
+}
+
+export function searchAdminDashboard(query: string) {
+  return request<AdminSearchResult>("/admin/search", { method: "GET" }, { q: query });
+}
+
+// Escalation dashboard summary (maps to ComplaintSummary shape for compatibility)
+export function fetchEscalationDashboard() {
+  return request<{ totalEscalations: number; pending: number; critical: number; resolved: number }>("/escalations/dashboard", { method: "GET" })
+    .then((data) => {
+      // adapt shape to ComplaintSummary used by the UI
+      return Promise.resolve({
+        submitted: 0,
+        assigned: 0,
+        inProgress: 0,
+        resolved: data.resolved ?? 0,
+        escalated: data.totalEscalations ?? 0,
+        total: data.totalEscalations ?? 0,
+      } as ComplaintSummary);
+    });
 }
 
 export function createOfficerInvitation(payload: {
@@ -821,122 +1069,6 @@ export function getOfficerOpsReports() {
 
 export function getOfficerOpsKnowledgeBase() {
   return request<{ knowledgeBase: OfficerKnowledgeDoc[] }>("/officers/ops/knowledge-base", {
-    method: "GET",
-  });
-}
-
-// Admin Governance APIs
-export type SLAStatistics = {
-  total: number;
-  breached: number;
-  warning: number;
-  healthy: number;
-  breachPercentage: number;
-  escalatedCount: number;
-  byDepartment: Record<
-    string,
-    {
-      total: number;
-      breached: number;
-      warning: number;
-    }
-  >;
-};
-
-export type EscalationStatistics = {
-  total: number;
-  active: number;
-  resolved: number;
-  byLevel: {
-    low: number;
-    medium: number;
-    high: number;
-    emergency: number;
-  };
-  escalations: Array<{
-    id: string;
-    complaintId: string;
-    grievanceId: string;
-    title: string;
-    category: string;
-    department: string;
-    level: string;
-    status: string;
-    reason: string;
-    createdAt: string;
-    resolvedAt: string | null;
-  }>;
-};
-
-export type AdminGovernanceDashboard = {
-  summary: {
-    totalComplaints: number;
-    totalOfficers: number;
-    totalEscalations: number;
-    activeEscalations: number;
-  };
-  sla: SLAStatistics;
-  escalations: EscalationStatistics;
-  complaintsByStatus: Record<string, number>;
-  complaintsByDepartment: Record<string, number>;
-  complaintsByPriority: Record<string, number>;
-  recentComplaints: Array<{
-    id: string;
-    grievanceId: string;
-    status: string;
-    priority: string;
-    category: string;
-    department: string;
-    createdAt: string;
-    slaStatus: "breached" | "active";
-    riskScore: number;
-    isEscalated: boolean;
-    escalationLevel: string | null;
-  }>;
-  officers: number;
-};
-
-export function getAdminGovernanceDashboard() {
-  return request<{ data: AdminGovernanceDashboard }>("/admin/governance/dashboard", {
-    method: "GET",
-  });
-}
-
-export function getAdminSLAStatistics() {
-  return request<{
-    statistics: SLAStatistics;
-    dailyTrend: Array<{
-      date: string;
-      submitted: number;
-      breached: number;
-      resolved: number;
-    }>;
-  }>("/admin/governance/sla-stats", {
-    method: "GET",
-  });
-}
-
-export function getAdminEscalationStatistics() {
-  return request<EscalationStatistics>("/admin/governance/escalation-stats", {
-    method: "GET",
-  });
-}
-
-export type DepartmentComplaintsStats = {
-  department: string;
-  totalComplaints: number;
-  resolved: number;
-  resolutionRate: number;
-  breached: number;
-  breachRate: number;
-  escalated: number;
-  escalationRate: number;
-  avgResolutionTimeHours: number;
-  byPriority: Record<string, number>;
-};
-
-export function getAdminComplaintsByDepartment() {
-  return request<DepartmentComplaintsStats[]>("/admin/governance/complaints-by-department", {
     method: "GET",
   });
 }

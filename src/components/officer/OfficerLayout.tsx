@@ -28,9 +28,9 @@ export function OfficerLayout() {
 
   const closeSidebar = () => setSidebarOpen(false);
   return (
-    <div className="min-h-dvh overflow-hidden bg-secondary/30">
-      <div className="flex">
-        <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
+    <div className="min-h-screen bg-secondary/30">
+      <div className="flex min-h-screen min-w-0">
+        <aside className="sticky top-0 hidden h-screen w-[260px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
           <Link
             to="/"
             className="flex items-center gap-2.5 border-b border-sidebar-border px-5 py-4"
@@ -167,7 +167,7 @@ export function OfficerLayout() {
               </div>
             </div>
           </header>
-          <main className="flex-1 min-h-0 overflow-auto p-4 md:p-8">
+          <main className="flex-1 min-w-0 p-4 md:p-8">
             <Outlet />
           </main>
         </div>

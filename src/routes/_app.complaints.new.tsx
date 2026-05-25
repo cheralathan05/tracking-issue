@@ -20,7 +20,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { categories } from "@/lib/complaint-categories";
-import { createComplaint, type ComplaintEvidence, type ComplaintPriority } from "@/lib/smartgov-api";
+import {
+  createComplaint,
+  type ComplaintEvidence,
+  type ComplaintPriority,
+  type ComplaintRecord,
+} from "@/lib/smartgov-api";
 
 export const Route = createFileRoute("/_app/complaints/new")({
   head: () => ({ meta: [{ title: "Raise a Grievance — Civic Bridge Flow" }] }),
@@ -29,6 +34,45 @@ export const Route = createFileRoute("/_app/complaints/new")({
 
 const steps = ["Details", "Location", "Description", "Evidence", "Review"];
 const MAX_DESC = 1000;
+
+const workflowStages = [
+  {
+    title: "Validate submission",
+    actor: "Citizen frontend",
+    description: "Collect the complainant profile, title, category, priority, location, and evidence.",
+    outcome: "Required fields, phone format, and file size checks pass before the request continues.",
+  },
+  {
+    title: "Map category to department",
+    actor: "Backend routing",
+    description: "Convert the selected category into the owning department and apply the active SLA rules.",
+    outcome: "category_id → department_id determines who owns the grievance.",
+  },
+  {
+    title: "Assign an officer",
+    actor: "Assignment engine",
+    description: "Find an active officer by department, district, and availability.",
+    outcome: "The complaint is linked to the nearest eligible officer automatically.",
+  },
+  {
+    title: "Persist records",
+    actor: "Database layer",
+    description: "Store the complaint, messages, attachments, and audit trail in the backend tables.",
+    outcome: "A unique grievance ID is generated for tracking and governance.",
+  },
+  {
+    title: "Notify everyone",
+    actor: "Realtime service",
+    description: "Send confirmation to the citizen and push the assignment to the officer and admin views.",
+    outcome: "Socket and notification events keep every dashboard in sync.",
+  },
+  {
+    title: "Track to closure",
+    actor: "Citizen + officer + admin",
+    description: "Support chat, field updates, evidence upload, escalation, verification, and closure.",
+    outcome: "The case moves through resolution, feedback, and final closure.",
+  },
+];
 
 type DraftEvidence = File;
 
@@ -62,7 +106,7 @@ function fileToEvidence(file: File): Promise<ComplaintEvidence> {
 function NewComplaint() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [submitted, setSubmitted] = useState<string | null>(null);
+  const [submittedComplaint, setSubmittedComplaint] = useState<ComplaintRecord | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [files, setFiles] = useState<DraftEvidence[]>([]);
   const [gps, setGps] = useState<{ lat: number; lng: number } | null>(null);
@@ -84,6 +128,7 @@ function NewComplaint() {
     occurredAt: "",
     publicVisibility: true,
   });
+  const selectedDepartment = categoryToDepartment[data.category] ?? "Relevant department";
   const set = <K extends keyof typeof data>(k: K, v: (typeof data)[K]) => {
     setData((d) => ({ ...d, [k]: v }));
     setErrors((e) => {
@@ -92,7 +137,7 @@ function NewComplaint() {
     });
   };
 
-  if (submitted) {
+  if (submittedComplaint) {
     return (
       <div className="mx-auto max-w-xl rounded-2xl border border-border bg-card p-10 text-center shadow-card">
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-success/15 text-success">
@@ -100,15 +145,18 @@ function NewComplaint() {
         </div>
         <h2 className="mt-4 text-2xl font-bold">Complaint submitted</h2>
         <p className="mt-1 text-muted-foreground">
-          Your grievance has been registered and routed to the right department.
+          Your grievance has been registered, routed to the right department, and queued for assignment.
         </p>
         <div className="mt-5 rounded-lg border border-dashed border-border bg-secondary/40 p-4">
           <div className="text-xs uppercase tracking-widest text-muted-foreground">
             Grievance ID
           </div>
-          <div className="mt-1 font-mono text-lg font-semibold">{submitted}</div>
+          <div className="mt-1 font-mono text-lg font-semibold">{submittedComplaint.grievanceId}</div>
           <div className="mt-2 text-xs text-muted-foreground">
-            SMS + email confirmation sent to your registered contact.
+            {submittedComplaint.department}
+            {submittedComplaint.assignedOfficerName
+              ? ` · Assigned to ${submittedComplaint.assignedOfficerName}`
+              : " · Officer assignment in progress"}
           </div>
         </div>
         <div className="mt-6 flex justify-center gap-2">
@@ -116,7 +164,7 @@ function NewComplaint() {
             <Link to="/complaints">View all</Link>
           </Button>
           <Button asChild className="bg-gradient-primary text-primary-foreground">
-            <Link to="/complaints/$id" params={{ id: submitted }}>
+            <Link to="/complaints/$id" params={{ id: submittedComplaint.grievanceId }}>
               Track now
             </Link>
           </Button>
@@ -190,7 +238,7 @@ function NewComplaint() {
 
       const complaint = result.complaint;
       toast.success(`Grievance ${complaint.grievanceId} registered`);
-      setSubmitted(complaint.grievanceId);
+      setSubmittedComplaint(complaint);
     } catch (submitError) {
       toast.error(submitError instanceof Error ? submitError.message : "Unable to submit complaint");
     } finally {
@@ -243,6 +291,55 @@ function NewComplaint() {
           Provide accurate details so we can route and resolve faster.
         </p>
       </div>
+
+      <section className="max-w-full overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-card md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+              Complete workflow
+            </p>
+            <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
+              Citizen to admin to officer, in one routed grievance flow
+            </h2>
+            <p className="text-sm leading-6 text-muted-foreground">
+              This page starts the case. The backend validates the payload, maps the category to a department,
+              assigns an active officer, stores the audit trail, and pushes realtime notifications to every role.
+            </p>
+          </div>
+          <div className="grid max-w-full gap-3 sm:grid-cols-3 md:min-w-0">
+            <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Auto-routing</div>
+              <div className="mt-1 text-sm font-semibold">{selectedDepartment}</div>
+            </div>
+            <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">SLA tracking</div>
+              <div className="mt-1 text-sm font-semibold">Priority-based deadline</div>
+            </div>
+            <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3">
+              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Realtime</div>
+              <div className="mt-1 text-sm font-semibold">Citizen, officer, admin sync</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-6">
+          {workflowStages.map((stage, index) => (
+            <div key={stage.title} className="rounded-xl border border-border bg-background/80 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                  {String(index + 1).padStart(2, "0")}
+                </div>
+                <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+                  {stage.actor}
+                </span>
+              </div>
+              <h3 className="mt-3 text-sm font-semibold text-foreground">{stage.title}</h3>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">{stage.description}</p>
+              <p className="mt-3 text-xs font-medium text-primary">{stage.outcome}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Stepper */}
       <ol className="flex items-center gap-2 overflow-x-auto">
@@ -342,11 +439,14 @@ function NewComplaint() {
                   </button>
                 ))}
               </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Selected category will auto-route to <span className="font-medium text-foreground">{selectedDepartment}</span>, and the backend will pick the active officer for the district.
+              </p>
             </div>
             <div>
               <Label className="mb-2 block">Priority</Label>
               <div className="flex flex-wrap gap-2">
-                {["Low", "Medium", "High", "Critical"].map((p) => (
+                {(["Low", "Medium", "High", "Critical"] as ComplaintPriority[]).map((p) => (
                   <button
                     key={p}
                     type="button"
@@ -528,6 +628,10 @@ function NewComplaint() {
                 <dt className="text-xs text-muted-foreground">Category</dt>
                 <dd className="font-medium capitalize">{data.category}</dd>
               </div>
+              <div className="sm:col-span-2">
+                <dt className="text-xs text-muted-foreground">Department routing</dt>
+                <dd className="font-medium">{selectedDepartment}</dd>
+              </div>
               <div>
                 <dt className="text-xs text-muted-foreground">Priority</dt>
                 <dd className="font-medium">{data.priority}</dd>
@@ -558,6 +662,10 @@ function NewComplaint() {
                 <dd className="font-medium">
                   {files.length ? `${files.length} file(s) attached` : "None"}
                 </dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-xs text-muted-foreground">Assignment</dt>
+                <dd className="font-medium">Officer auto-assignment by department, district, and active status</dd>
               </div>
             </dl>
             <div className="rounded-lg border border-info/30 bg-info/10 p-3 text-xs text-info">

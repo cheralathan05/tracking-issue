@@ -1,42 +1,24 @@
 import { Router } from "express";
-import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
+
+import { getDashboard, searchDashboard } from "../controllers/admin.controller.js";
 import {
-  getAdminGovvernanceDashboard,
-  getAdminSLAStatistics,
-  getAdminEscalationStatistics,
-  getAdminComplaintsByDepartment,
-} from "../controllers/admin.controller.js";
+  exportAdminComplaints,
+  listAdminComplaints,
+  listAdminComplaintStats,
+  queryAdminComplaints,
+} from "../controllers/admin-complaint.controller.js";
+import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 
 export const adminRouter = Router();
 
-// Governance dashboard - aggregated view
-adminRouter.get(
-  "/governance/dashboard",
+adminRouter.use(
   requireAuth,
-  requireRole("super_admin", "state_admin", "district_officer", "department_officer", "admin"),
-  getAdminGovvernanceDashboard,
+  requireRole("super_admin", "state_admin", "district_officer", "department_officer", "admin", "officer"),
 );
 
-// SLA statistics and monitoring
-adminRouter.get(
-  "/governance/sla-stats",
-  requireAuth,
-  requireRole("super_admin", "state_admin", "district_officer", "department_officer", "admin"),
-  getAdminSLAStatistics,
-);
-
-// Escalation statistics and monitoring
-adminRouter.get(
-  "/governance/escalation-stats",
-  requireAuth,
-  requireRole("super_admin", "state_admin", "district_officer", "department_officer", "admin"),
-  getAdminEscalationStatistics,
-);
-
-// Department-wise complaint analysis
-adminRouter.get(
-  "/governance/complaints-by-department",
-  requireAuth,
-  requireRole("super_admin", "state_admin", "district_officer", "department_officer", "admin"),
-  getAdminComplaintsByDepartment,
-);
+adminRouter.get("/dashboard", getDashboard);
+adminRouter.get("/search", searchDashboard);
+adminRouter.get("/complaints", listAdminComplaints);
+adminRouter.get("/complaints/stats", listAdminComplaintStats);
+adminRouter.get("/complaints/search", queryAdminComplaints);
+adminRouter.get("/complaints/export", exportAdminComplaints);

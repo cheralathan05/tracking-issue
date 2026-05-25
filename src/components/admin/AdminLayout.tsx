@@ -1,4 +1,4 @@
-import { Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
@@ -39,6 +39,8 @@ const nav = [
 
 export function AdminLayout() {
   const [profile, setProfile] = useState<AuthUser | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
@@ -65,10 +67,20 @@ export function AdminLayout() {
 
   const closeSidebar = () => setSidebarOpen(false);
 
+  const submitSearch = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const query = searchQuery.trim();
+    await navigate({
+      to: "/admin/dashboard",
+      search: query ? ({ q: query } as never) : ({} as never),
+    });
+  };
+
   return (
-    <div className="min-h-dvh overflow-hidden bg-secondary/30">
-      <div className="flex">
-        <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
+    <div className="min-h-screen overflow-x-hidden bg-secondary/30">
+      <div className="flex min-h-screen min-w-0">
+        <aside className="sticky top-0 hidden h-screen w-[260px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
           <Link
             to="/"
             className="flex items-center gap-2.5 border-b border-sidebar-border px-5 py-4"
@@ -184,7 +196,7 @@ export function AdminLayout() {
         ) : null}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-xl md:px-8">
+          <header className="flex h-16 items-center gap-3 border-b border-border bg-background/85 px-4 md:px-8">
             <button
               type="button"
               aria-label="Open sidebar"
@@ -194,10 +206,15 @@ export function AdminLayout() {
               <Menu className="h-5 w-5" />
             </button>
 
-            <div className="relative max-w-md flex-1">
+            <form onSubmit={submitSearch} className="relative max-w-md flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search complaints, citizens, officers…" className="pl-9" />
-            </div>
+              <Input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search complaints, citizens, officers..."
+                className="pl-9"
+              />
+            </form>
             <div className="ml-auto flex items-center gap-2">
               <span className="hidden items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-[11px] font-medium text-success sm:inline-flex">
                 <Shield className="h-3 w-3" /> Admin
@@ -215,7 +232,7 @@ export function AdminLayout() {
             </div>
           </header>
 
-          <main className="flex-1 min-h-0 overflow-auto p-4 md:p-8">
+          <main className="flex-1 min-w-0 p-4 md:p-8">
             <Outlet />
           </main>
         </div>

@@ -242,10 +242,9 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
     <div
       className="
         relative
-        h-full
+        min-h-full
         w-full
         min-h-0
-        overflow-hidden
         bg-gradient-to-b
         from-[#040813]
         via-[#050816]
@@ -301,7 +300,7 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
       {/* ===================================================
          MAIN APPLICATION CONTAINER
       =================================================== */}
-      <div className="relative z-10 flex h-full min-h-0 w-full flex-col overflow-hidden">
+      <div className="relative z-10 flex min-h-0 w-full flex-col">
 
         {/* NAVBAR */}
         <div className="flex-shrink-0">
@@ -314,7 +313,7 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
             flex-1
             min-h-0
             w-full
-            overflow-hidden
+            overflow-visible
             px-0
             py-0
           "
@@ -335,12 +334,7 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
               transition={{
                 duration: 0.4,
               }}
-              className="
-                h-full
-                w-full
-                overflow-hidden
-                flex
-              "
+              className="flex w-full min-h-0"
             >
               {/* ===================================================
                  GRID LAYOUT - 3 COLUMN STRUCTURE
@@ -348,7 +342,6 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
               <div
                 className={`
                   grid
-                  h-full
                   w-full
                   min-h-0
                   gap-3
@@ -372,7 +365,6 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
                       duration: 0.45,
                     }}
                     className="
-                      h-full
                       min-w-0
                       min-h-0
                       overflow-hidden
@@ -406,14 +398,13 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
                       delay: 0.05,
                     }}
                     className="
-                      h-full
                       min-w-0
                       min-h-0
                       overflow-hidden
                     "
                   >
 
-                    <div className="h-full min-w-0 min-h-0 overflow-hidden">
+                    <div className="min-w-0 min-h-0 overflow-hidden">
                       {selectedThread ? (
                         <ChatArea
                           density={isAdminWorkspace ? 'compact' : 'default'}
@@ -424,7 +415,7 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
                           threadLabel={selectedComplaint?.title ?? selectedComplaint?.grievanceId ?? 'Selected complaint'}
                         />
                       ) : (
-                        <div className="flex h-full items-center justify-center rounded-[32px] border border-white/10 bg-white/[0.03] backdrop-blur-3xl">
+                        <div className="flex min-h-[420px] items-center justify-center rounded-[32px] border border-white/10 bg-white/[0.03] backdrop-blur-3xl">
                           <div className="space-y-5 text-center">
                             <div className="text-7xl">💬</div>
                             <h3 className="text-3xl font-black tracking-tight">Select a conversation</h3>
@@ -452,7 +443,7 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
                         duration: 0.45,
                         delay: 0.08,
                       }}
-                      className="h-full min-w-0 min-h-0 overflow-hidden"
+                      className="min-w-0 min-h-0 overflow-hidden"
                     >
                       <ContextPanel
                         threadId={selectedComplaint?.id ?? 'admin-inbox'}
