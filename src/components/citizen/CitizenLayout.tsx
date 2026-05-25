@@ -8,8 +8,8 @@ import {
   Home,
   ListChecks,
   LogOut,
-  MessageCircle,
   Menu,
+  MessageSquare,
   Search,
   Settings,
   Shield,
@@ -23,7 +23,7 @@ const nav = [
   { to: "/dashboard", label: "Dashboard", icon: Home },
   { to: "/complaints/new", label: "New Complaint", icon: FilePlus2 },
   { to: "/complaints", label: "My Complaints", icon: ListChecks },
-  { to: "/chat", label: "Chat Center", icon: MessageCircle },
+  { to: "/chat", label: "Chat", icon: MessageSquare },
   { to: "/escalations", label: "Escalated", icon: AlertTriangle },
   { to: "/notifications", label: "Notifications", icon: Bell },
   { to: "/settings", label: "Settings", icon: Settings },
@@ -36,7 +36,6 @@ export function CitizenLayout({ initialUser }: { initialUser: AuthUser | null })
 function CitizenLayoutContent({ initialUser }: { initialUser: AuthUser | null }) {
   const path = useRouterState({ select: (state) => state.location.pathname });
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const isChatRoute = path === "/chat";
 
   const closeSidebar = () => {
     setSidebarOpen(false);
@@ -220,7 +219,7 @@ function CitizenLayoutContent({ initialUser }: { initialUser: AuthUser | null })
             </div>
           </header>
 
-          <main className={`flex-1 min-w-0 ${isChatRoute ? "p-0" : "p-4 md:p-8"}`}>
+          <main className="flex-1 min-w-0 p-4 md:p-8">
             <Outlet />
           </main>
         </div>

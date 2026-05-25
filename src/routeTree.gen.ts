@@ -41,6 +41,7 @@ import { Route as AdminOfficersRouteImport } from './routes/admin.officers'
 import { Route as AdminInviteRouteImport } from './routes/admin.invite'
 import { Route as AdminDepartmentsRouteImport } from './routes/admin.departments'
 import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminChatMonitorRouteImport } from './routes/admin.chat-monitor'
 import { Route as AdminChatRouteImport } from './routes/admin.chat'
 import { Route as AdminAssignmentRouteImport } from './routes/admin.assignment'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
@@ -216,6 +217,11 @@ const AdminDashboardRoute = AdminDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminChatMonitorRoute = AdminChatMonitorRouteImport.update({
+  id: '/chat-monitor',
+  path: '/chat-monitor',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminChatRoute = AdminChatRouteImport.update({
   id: '/chat',
   path: '/chat',
@@ -314,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/assignment': typeof AdminAssignmentRoute
   '/admin/chat': typeof AdminChatRoute
+  '/admin/chat-monitor': typeof AdminChatMonitorRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/departments': typeof AdminDepartmentsRoute
   '/admin/invite': typeof AdminInviteRoute
@@ -360,6 +367,7 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/assignment': typeof AdminAssignmentRoute
   '/admin/chat': typeof AdminChatRoute
+  '/admin/chat-monitor': typeof AdminChatMonitorRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/departments': typeof AdminDepartmentsRoute
   '/admin/invite': typeof AdminInviteRoute
@@ -410,6 +418,7 @@ export interface FileRoutesById {
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/assignment': typeof AdminAssignmentRoute
   '/admin/chat': typeof AdminChatRoute
+  '/admin/chat-monitor': typeof AdminChatMonitorRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/admin/departments': typeof AdminDepartmentsRoute
   '/admin/invite': typeof AdminInviteRoute
@@ -460,6 +469,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/assignment'
     | '/admin/chat'
+    | '/admin/chat-monitor'
     | '/admin/dashboard'
     | '/admin/departments'
     | '/admin/invite'
@@ -506,6 +516,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/assignment'
     | '/admin/chat'
+    | '/admin/chat-monitor'
     | '/admin/dashboard'
     | '/admin/departments'
     | '/admin/invite'
@@ -555,6 +566,7 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/assignment'
     | '/admin/chat'
+    | '/admin/chat-monitor'
     | '/admin/dashboard'
     | '/admin/departments'
     | '/admin/invite'
@@ -832,6 +844,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDashboardRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/chat-monitor': {
+      id: '/admin/chat-monitor'
+      path: '/chat-monitor'
+      fullPath: '/admin/chat-monitor'
+      preLoaderRoute: typeof AdminChatMonitorRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/chat': {
       id: '/admin/chat'
       path: '/chat'
@@ -968,6 +987,7 @@ interface AdminRouteChildren {
   AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminAssignmentRoute: typeof AdminAssignmentRoute
   AdminChatRoute: typeof AdminChatRoute
+  AdminChatMonitorRoute: typeof AdminChatMonitorRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminDepartmentsRoute: typeof AdminDepartmentsRoute
   AdminInviteRoute: typeof AdminInviteRoute
@@ -983,6 +1003,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminAssignmentRoute: AdminAssignmentRoute,
   AdminChatRoute: AdminChatRoute,
+  AdminChatMonitorRoute: AdminChatMonitorRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminDepartmentsRoute: AdminDepartmentsRoute,
   AdminInviteRoute: AdminInviteRoute,

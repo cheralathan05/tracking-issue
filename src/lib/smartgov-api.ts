@@ -51,9 +51,22 @@ async function request<T>(path: string, init?: RequestInit, query?: Record<strin
   let response: Response;
 
   try {
+    const initHeaders = init?.headers;
+    const headerObj: Record<string, string> = {};
+    
+    if (initHeaders) {
+      if (initHeaders instanceof Headers) {
+        initHeaders.forEach((value, key) => {
+          headerObj[key] = value;
+        });
+      } else if (typeof initHeaders === 'object') {
+        Object.assign(headerObj, initHeaders);
+      }
+    }
+
     const headers: Record<string, string> = {
       "content-type": "application/json",
-      ...(init?.headers ?? {}),
+      ...headerObj,
     };
 
     response = await fetch(buildUrl(path, query), {
@@ -544,6 +557,265 @@ export function markChatRoomRead(roomId: string) {
   });
 }
 
+// ========== CHAT COMPLAINT INTEGRATION ==========
+
+export function getChatComplaintHeader(complaintId: string) {
+  return request<{
+    success: boolean;
+    data: {
+      id: string;
+      grievanceId: string;
+      title: string;
+      department: string;
+      status: string;
+      priority: string;
+      category: string;
+      assignedOfficer: {
+        id: string;
+        name: string;
+        email: string;
+        department: string;
+      } | null;
+      citizen: {
+        id: string;
+        name: string;
+      } | null;
+      isEscalated: boolean;
+      escalationLevel: string | null;
+      slaDeadline: string | null;
+      createdAt: string;
+      updatedAt: string;
+    };
+  }>(`/chat/complaints/${encodeURIComponent(complaintId)}/header`, { method: "GET" });
+}
+
+// ========== CHAT ESCALATION ==========
+
+export function escalateComplaintFromChat(complaintId: string, payload: {
+  reason: string;
+  level?: "low" | "medium" | "high" | "emergency";
+}) {
+  return request<{ success: boolean; data: any }>(`/chat/complaints/${encodeURIComponent(complaintId)}/escalate`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getEscalationDetails(complaintId: string) {
+  return request<{
+    success: boolean;
+    data: {
+      id: string;
+      level: string;
+      reason: string;
+      status: string;
+      escalatedBy: string;
+      escalatedAt: string;
+      resolvedBy: string | null;
+      resolvedAt: string | null;
+      resolutionNote: string | null;
+    } | null;
+  }>(`/chat/complaints/${encodeURIComponent(complaintId)}/escalation`, { method: "GET" });
+}
+
+// ========== CHAT RESOLUTION VERIFICATION ==========
+
+export function uploadResolutionProof(complaintId: string, payload: {
+  proofUrl: string;
+  proofType?: string;
+  description?: string;
+}) {
+  return request<{
+    success: boolean;
+    message: string;
+    data: {
+      complaintId: string;
+      status: string;
+    };
+  }>(`/chat/complaints/${encodeURIComponent(complaintId)}/resolution-proof`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function verifyResolution(complaintId: string, payload: {
+  verified: boolean;
+  feedback?: string;
+}) {
+  return request<{
+    success: boolean;
+    message: string;
+    data: {
+      complaintId: string;
+      status: string;
+    };
+  }>(`/chat/complaints/${encodeURIComponent(complaintId)}/verify-resolution`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+// ========== CHAT ADMIN MONITORING ==========
+
+export function getAdminChatRooms(query?: {
+  search?: string;
+  filter?: "all" | "escalated" | "urgent" | "unread";
+  sortBy?: "latest" | "oldest" | "activity";
+  limit?: number;
+  offset?: number;
+}) {
+  return request<{
+    success: boolean;
+    data: {
+      rooms: Array<{
+        id: string;
+        complaintId: string;
+        grievanceId: string;
+        citizen: string;
+        officer: string;
+        department: string;
+        priority: string;
+        status: string;
+        escalationLevel: string | null;
+        isEscalated: boolean;
+        unreadCount: number;
+        lastMessageTime: string;
+        slaDeadline: string | null;
+        createdAt: string;
+      }>;
+      total: number;
+    };
+  }>("/chat/admin/rooms", { method: "GET" }, query as Record<string, string | number | null | undefined>);
+}
+
+export function getAdminChatDetails(roomId: string) {
+  return request<{
+    success: boolean;
+    data: {
+      room: {
+        id: string;
+        complaintId: string;
+        createdAt: string;
+      };
+      complaint: {
+        id: string;
+        grievanceId: string;
+        title: string;
+        category: string;
+        description: string;
+        status: string;
+        priority: string;
+        department: string;
+        district: string;
+        city: string;
+        slaDeadline: string | null;
+        createdAt: string;
+        citizen: {
+          name: string;
+          email: string | null;
+          mobile: string | null;
+        };
+        officer: {
+          id: string | null;
+          name: string | null;
+          email: string | null;
+        };
+        escalation: {
+          id: string;
+          level: string;
+          reason: string;
+          escalatedBy: string;
+          createdAt: string;
+        } | null;
+        recentTimeline: Array<{
+          status: string;
+          changedAt: string;
+          reason: string | null;
+        }>;
+      };
+      participants: Array<{
+        userId: string;
+        name: string | null;
+        role: string;
+        joinedAt: string;
+      }>;
+      messages: ComplaintMessageRecord[];
+    };
+  }>(`/chat/admin/rooms/${encodeURIComponent(roomId)}/details`, { method: "GET" });
+}
+
+export function adminReassignComplaint(complaintId: string, payload: {
+  newOfficerId: string;
+  reason?: string;
+}) {
+  return request<{
+    success: boolean;
+    message: string;
+    data: any;
+  }>(`/chat/admin/complaints/${encodeURIComponent(complaintId)}/reassign`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function adminEscalateComplaint(complaintId: string, payload: {
+  level: "low" | "medium" | "high" | "emergency";
+  reason: string;
+}) {
+  return request<{
+    success: boolean;
+    message: string;
+    data: any;
+  }>(`/chat/admin/complaints/${encodeURIComponent(complaintId)}/escalate`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function freezeComplaintChat(complaintId: string, payload: {
+  reason?: string;
+}) {
+  return request<{
+    success: boolean;
+    message: string;
+    data: any;
+  }>(`/chat/admin/complaints/${encodeURIComponent(complaintId)}/freeze-chat`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function unfreezeComplaintChat(complaintId: string) {
+  return request<{
+    success: boolean;
+    message: string;
+    data: any;
+  }>(`/chat/admin/complaints/${encodeURIComponent(complaintId)}/unfreeze-chat`, {
+    method: "POST",
+  });
+}
+
+export function sendBroadcastAdminMessage(payload: {
+  message: string;
+  priority?: string;
+  scope?: "all" | "department" | "district";
+  filters?: {
+    department?: string;
+    district?: string;
+  };
+}) {
+  return request<{
+    success: boolean;
+    message: string;
+    data: {
+      broadcastTo: number;
+    };
+  }>("/chat/admin/broadcast-message", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function sendComplaintMessage(id: string, message: string) {
   return request<{ messageRecord: ComplaintMessageRecord }>(`/complaints/${encodeURIComponent(id)}/messages`, {
     method: "POST",
@@ -696,6 +968,132 @@ export function updateAdminUser(
 
 export function requestComplaintSummaryForDashboard() {
   return fetchComplaintSummary();
+}
+
+// ============================================================================
+// ADMIN CHAT API FUNCTIONS
+// ============================================================================
+
+export type AdminChatRoom = {
+  id: string;
+  complaintId: string;
+  grievanceId: string;
+  citizen: string;
+  officer: string;
+  department: string;
+  priority: string;
+  status: string;
+  escalationLevel?: string;
+  isEscalated: boolean;
+  unreadCount: number;
+  lastMessageTime: string;
+  slaDeadline?: string;
+  createdAt: string;
+};
+
+export type AdminChatDetails = {
+  room: { id: string; complaintId: string; createdAt: string };
+  complaint: {
+    id: string;
+    grievanceId: string;
+    title: string;
+    category: string;
+    description: string;
+    status: string;
+    priority: string;
+    department: string;
+    district: string;
+    city: string;
+    slaDeadline?: string;
+    createdAt: string;
+    citizen: { name: string; email?: string; mobile?: string };
+    officer: { id?: string; name: string; email?: string };
+    escalation?: {
+      id: string;
+      level: string;
+      reason: string;
+      escalatedBy: string;
+      createdAt: string;
+    };
+    recentTimeline: Array<{
+      status: string;
+      changedAt: string;
+      reason?: string;
+    }>;
+  };
+  participants: Array<{
+    userId: string;
+    name: string;
+    role: string;
+    joinedAt: string;
+  }>;
+  messages: Array<{
+    id: string;
+    authorId: string;
+    authorName: string;
+    authorRole: string;
+    message: string;
+    createdAt: string;
+    isAdmin: boolean;
+  }>;
+};
+
+export function listAdminChatRooms(query?: {
+  search?: string;
+  filter?: "all" | "escalated" | "urgent" | "unread";
+  sortBy?: "latest" | "oldest" | "activity";
+  limit?: number;
+  offset?: number;
+}) {
+  return request<{
+    rooms: AdminChatRoom[];
+    total: number;
+  }>("/admin/chat/rooms", { method: "GET" }, query as Record<string, string | number | boolean | null | undefined>);
+}
+
+export function getAdminChatRoom(roomId: string) {
+  return request<{ data: AdminChatDetails }>(`/admin/chat/${encodeURIComponent(roomId)}`, { method: "GET" });
+}
+
+export function sendAdminChatMessage(roomId: string, message: string, attachment?: any) {
+  return request<{ data: { messageId: string } }>(`/admin/chat/${encodeURIComponent(roomId)}/message`, {
+    method: "POST",
+    body: JSON.stringify({ message, attachment }),
+  });
+}
+
+export function reassignComplaintToOfficer(complaintId: string, newOfficerId: string, reason?: string) {
+  return request<{ success: boolean }>(`/admin/chat/${encodeURIComponent(complaintId)}/reassign`, {
+    method: "POST",
+    body: JSON.stringify({ newOfficerId, reason }),
+  });
+}
+
+export function escalateComplaintAdmin(complaintId: string, level: string, reason: string) {
+  return request<{ success: boolean }>(`/admin/chat/${encodeURIComponent(complaintId)}/escalate`, {
+    method: "POST",
+    body: JSON.stringify({ level, reason }),
+  });
+}
+
+export function freezeComplaintChatAdmin(complaintId: string, reason: string) {
+  return request<{ success: boolean }>(`/admin/chat/${encodeURIComponent(complaintId)}/freeze`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export function unfreezeComplaintChatAdmin(complaintId: string) {
+  return request<{ success: boolean }>(`/admin/chat/${encodeURIComponent(complaintId)}/unfreeze`, {
+    method: "POST",
+  });
+}
+
+export function broadcastAdminAlert(message: string, priority?: string, scope?: string, filters?: any) {
+  return request<{ broadcastTo: number }>("/admin/chat/broadcast", {
+    method: "POST",
+    body: JSON.stringify({ message, priority, scope, filters }),
+  });
 }
 
 export type NotificationRecord = {

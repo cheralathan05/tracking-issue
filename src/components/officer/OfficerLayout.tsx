@@ -11,6 +11,7 @@ import {
   Radio,
   Menu,
   X,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import { NotificationBell } from "@/components/ui/NotificationBell";
 const nav = [
   { to: "/officer/dashboard", label: "Mission Dashboard", icon: LayoutDashboard },
   { to: "/officer/complaints", label: "Assigned Complaints", icon: ClipboardList },
+  { to: "/officer/chat", label: "Field Operations Chat", icon: MessageSquare },
   { to: "/officer/resolution", label: "Resolution Upload", icon: UploadCloud },
 ] as const;
 

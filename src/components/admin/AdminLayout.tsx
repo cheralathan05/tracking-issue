@@ -12,12 +12,12 @@ import {
   Bell,
   Search,
   ShieldCheck,
-  MessageSquare,
   Briefcase,
   UserPlus,
   Sparkles,
   Menu,
   X,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ import { getProfile, logout, type AuthUser } from "@/lib/auth-api";
 const nav = [
   { to: "/admin/dashboard", label: "Overview", icon: LayoutDashboard },
   { to: "/admin/complaints", label: "Complaints", icon: ClipboardList },
-  { to: "/admin/chat", label: "Chat", icon: MessageSquare },
+  { to: "/admin/chat", label: "Chat Monitoring", icon: MessageSquare },
   { to: "/admin/assignment", label: "Smart assignment", icon: Sparkles },
   { to: "/admin/officers", label: "Officers", icon: Briefcase },
   { to: "/admin/invite", label: "Invite officer", icon: UserPlus },

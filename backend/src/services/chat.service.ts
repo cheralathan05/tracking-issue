@@ -412,6 +412,446 @@ export async function pinMessage(input: { roomId: string; messageId: string; pin
   return { ok: true };
 }
 
+// Admin Chat Operations
+export async function getAdminChatRooms(input: {
+  search?: string;
+  filter?: string;
+  sortBy?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const { search, filter = "all", sortBy = "latest", limit = 20, offset = 0 } = input;
+  const normalizedSearch = search?.trim().toLowerCase();
+
+  let whereClause: any = {};
+
+  // Filter by status/priority if needed
+  if (filter === "escalated") {
+    whereClause.complaint = { escalation: { isNot: null } };
+  } else if (filter === "urgent") {
+    whereClause.complaint = { priority: { in: ["HIGH", "CRITICAL"] } };
+  } else if (filter === "unread") {
+    whereClause.notifications = { some: { read: false } };
+  }
+
+  // Search in complaint data
+  if (normalizedSearch) {
+    whereClause.complaint = {
+      ...whereClause.complaint,
+      OR: [
+        { grievanceId: { contains: normalizedSearch, mode: "insensitive" } },
+        { title: { contains: normalizedSearch, mode: "insensitive" } },
+        { reporterName: { contains: normalizedSearch, mode: "insensitive" } },
+        { assignedOfficerName: { contains: normalizedSearch, mode: "insensitive" } },
+      ],
+    };
+  }
+
+  const rooms = await prisma.chatRoom.findMany({
+    where: whereClause,
+    include: {
+      complaint: {
+        include: {
+          assignedOfficer: { select: { id: true, fullName: true, role: true } },
+          reporterUser: { select: { id: true, fullName: true } },
+          escalation: true,
+        },
+      },
+      participants: true,
+      messages: { orderBy: { createdAt: "desc" }, take: 1 },
+      notifications: { where: { read: false } },
+    },
+    orderBy:
+      sortBy === "oldest"
+        ? { createdAt: "asc" }
+        : sortBy === "activity"
+          ? { updatedAt: "desc" }
+          : { createdAt: "desc" },
+    take: limit,
+    skip: offset,
+  });
+
+  return {
+    rooms: rooms.map((room) => ({
+      id: room.id,
+      complaintId: room.complaint?.id,
+      grievanceId: room.complaint?.grievanceId,
+      citizen: room.complaint?.reporterName,
+      officer: room.complaint?.assignedOfficerName || "Unassigned",
+      department: room.complaint?.department,
+      priority: room.complaint?.priority,
+      status: room.complaint?.status,
+      escalationLevel: room.complaint?.escalation?.level,
+      isEscalated: !!room.complaint?.escalation,
+      unreadCount: room.notifications.length,
+      lastMessageTime: room.messages[0]?.createdAt.toISOString(),
+      slaDeadline: room.complaint?.slaDeadline?.toISOString(),
+      createdAt: room.createdAt.toISOString(),
+    })),
+    total: await prisma.chatRoom.count({ where: whereClause }),
+  };
+}
+
+export async function getAdminChatDetails(input: { roomId: string; adminId: string }) {
+  const room = await prisma.chatRoom.findUnique({
+    where: { id: input.roomId },
+    include: {
+      complaint: {
+        include: {
+          assignedOfficer: { select: { id: true, fullName: true, role: true, email: true } },
+          reporterUser: { select: { id: true, fullName: true, role: true, email: true, mobile: true } },
+          escalation: { include: { escalatedByUser: { select: { fullName: true } } } },
+          timelines: { orderBy: { createdAt: "desc" }, take: 5 },
+        },
+      },
+      participants: { include: { user: { select: { id: true, fullName: true, role: true } } } },
+    },
+  });
+
+  if (!room || !room.complaint) {
+    throw new AppError("Chat room not found", 404);
+  }
+
+  const messages = await getMessages(room.id, 100);
+
+  return {
+    room: {
+      id: room.id,
+      complaintId: room.complaint.id,
+      createdAt: toIso(room.createdAt),
+    },
+    complaint: {
+      id: room.complaint.id,
+      grievanceId: room.complaint.grievanceId,
+      title: room.complaint.title,
+      category: room.complaint.category,
+      description: room.complaint.description,
+      status: room.complaint.status,
+      priority: room.complaint.priority,
+      department: room.complaint.department,
+      district: room.complaint.district,
+      city: room.complaint.city,
+      slaDeadline: room.complaint.slaDeadline?.toISOString(),
+      createdAt: toIso(room.complaint.createdAt),
+      citizen: {
+        name: room.complaint.reporterName,
+        email: room.complaint.reporterUser?.email,
+        mobile: room.complaint.reporterUser?.mobile,
+      },
+      officer: {
+        id: room.complaint.assignedOfficerId,
+        name: room.complaint.assignedOfficerName,
+        email: room.complaint.assignedOfficer?.email,
+      },
+      escalation: room.complaint.escalation
+        ? {
+            id: room.complaint.escalation.id,
+            level: room.complaint.escalation.level,
+            reason: room.complaint.escalation.reason,
+            escalatedBy: room.complaint.escalation.escalatedByUser?.fullName,
+            createdAt: toIso(room.complaint.escalation.createdAt),
+          }
+        : null,
+      recentTimeline: room.complaint.timelines.map((t) => ({
+        status: t.newStatus,
+        changedAt: toIso(t.createdAt),
+        reason: t.reason,
+      })),
+    },
+    participants: participants.map((p) => ({
+      userId: p.userId,
+      name: p.user?.fullName,
+      role: p.role,
+      joinedAt: toIso(p.joinedAt),
+    })),
+    messages,
+  };
+}
+
+export async function sendAdminMessage(input: {
+  roomId: string;
+  complaintId: string;
+  adminId: string;
+  message: string;
+  attachment?: any;
+}) {
+  const { roomId, complaintId, adminId, message, attachment } = input;
+
+  // Verify admin can access this room
+  const room = await prisma.chatRoom.findUnique({
+    where: { id: roomId, complaintId },
+  });
+
+  if (!room) {
+    throw new AppError("Chat room not found", 404);
+  }
+
+  const created = await prisma.chatMessage.create({
+    data: {
+      roomId,
+      senderId: adminId,
+      complaintId,
+      message,
+      messageType: "admin_message",
+      attachment: attachment || null,
+    },
+  });
+
+  // Notify all participants
+  const participants = await prisma.chatParticipant.findMany({ where: { roomId } });
+  const notifications = participants
+    .filter((p) => p.userId !== adminId)
+    .map((p) => ({ userId: p.userId, roomId, messageId: created.id, type: "admin_message" }));
+
+  if (notifications.length) {
+    await prisma.chatNotification.createMany({ data: notifications });
+  }
+
+  // Audit log
+  await createAdminAuditLog(adminId, "admin.chat.message", {
+    roomId,
+    messageId: created.id,
+    complaintId,
+  });
+
+  return created;
+}
+
+export async function reassignComplaint(input: {
+  complaintId: string;
+  newOfficerId: string;
+  adminId: string;
+  reason?: string;
+}) {
+  const { complaintId, newOfficerId, adminId, reason } = input;
+
+  const complaint = await prisma.complaint.findUnique({ where: { id: complaintId } });
+  if (!complaint) {
+    throw new AppError("Complaint not found", 404);
+  }
+
+  const newOfficer = await prisma.user.findUnique({ where: { id: newOfficerId } });
+  if (!newOfficer) {
+    throw new AppError("Officer not found", 404);
+  }
+
+  const oldOfficerId = complaint.assignedOfficerId;
+
+  // Update complaint
+  const updated = await prisma.complaint.update({
+    where: { id: complaintId },
+    data: {
+      assignedOfficerId: newOfficerId,
+      assignedOfficerName: newOfficer.fullName,
+      assignedDepartment: newOfficer.department || complaint.assignedDepartment,
+    },
+  });
+
+  // Create timeline entry
+  await prisma.complaintTimeline.create({
+    data: {
+      complaintId,
+      oldStatus: complaint.status,
+      newStatus: complaint.status,
+      changedBy: adminId,
+      reason: `Officer reassigned from ${complaint.assignedOfficerName || "unassigned"} to ${newOfficer.fullName}. ${reason || ""}`,
+    },
+  });
+
+  // Audit log
+  await createAdminAuditLog(adminId, "admin.complaint.reassign", {
+    complaintId,
+    oldOfficerId,
+    newOfficerId,
+    reason,
+  });
+
+  return updated;
+}
+
+export async function escalateComplaint(input: {
+  complaintId: string;
+  level: string;
+  reason: string;
+  adminId: string;
+}) {
+  const { complaintId, level, reason, adminId } = input;
+
+  const complaint = await prisma.complaint.findUnique({ where: { id: complaintId } });
+  if (!complaint) {
+    throw new AppError("Complaint not found", 404);
+  }
+
+  // Check if already escalated
+  const existing = await prisma.escalation.findUnique({ where: { complaintId } });
+
+  if (existing) {
+    // Update existing escalation
+    await prisma.escalation.update({
+      where: { id: existing.id },
+      data: { level, reason, status: "active" },
+    });
+  } else {
+    // Create new escalation
+    await prisma.escalation.create({
+      data: {
+        complaintId,
+        escalatedBy: adminId,
+        level,
+        reason,
+      },
+    });
+  }
+
+  // Update complaint priority if high escalation
+  if (level === "emergency" || level === "high") {
+    await prisma.complaint.update({
+      where: { id: complaintId },
+      data: { priority: "CRITICAL" },
+    });
+  }
+
+  // Audit log
+  await createAdminAuditLog(adminId, "admin.complaint.escalate", {
+    complaintId,
+    level,
+    reason,
+  });
+
+  return { ok: true };
+}
+
+export async function freezeComplaintChat(input: {
+  complaintId: string;
+  reason: string;
+  adminId: string;
+}) {
+  const { complaintId, reason, adminId } = input;
+
+  const complaint = await prisma.complaint.findUnique({ where: { id: complaintId } });
+  if (!complaint) {
+    throw new AppError("Complaint not found", 404);
+  }
+
+  // Add frozen flag to metadata
+  const metadata = parseJsonObject(complaint.timeline);
+  const updated = await prisma.complaint.update({
+    where: { id: complaintId },
+    data: {
+      timeline: { ...metadata, chatFrozen: true, frozenAt: new Date().toISOString(), frozenReason: reason },
+    },
+  });
+
+  // Audit log
+  await createAdminAuditLog(adminId, "admin.chat.freeze", {
+    complaintId,
+    reason,
+  });
+
+  return updated;
+}
+
+export async function unfreezeComplaintChat(input: {
+  complaintId: string;
+  adminId: string;
+}) {
+  const { complaintId, adminId } = input;
+
+  const complaint = await prisma.complaint.findUnique({ where: { id: complaintId } });
+  if (!complaint) {
+    throw new AppError("Complaint not found", 404);
+  }
+
+  const metadata = parseJsonObject(complaint.timeline);
+  const updated = await prisma.complaint.update({
+    where: { id: complaintId },
+    data: {
+      timeline: { ...metadata, chatFrozen: false, unfrozenAt: new Date().toISOString() },
+    },
+  });
+
+  // Audit log
+  await createAdminAuditLog(adminId, "admin.chat.unfreeze", { complaintId });
+
+  return updated;
+}
+
+export async function broadcastAdminMessage(input: {
+  message: string;
+  priority?: string;
+  adminId: string;
+  scope?: "all" | "department" | "district";
+  filters?: { department?: string; district?: string };
+}) {
+  const { message, priority = "medium", adminId, scope = "all", filters = {} } = input;
+
+  // Find all relevant complaints
+  let whereClause: any = {};
+  if (scope === "department" && filters.department) {
+    whereClause.department = filters.department;
+  } else if (scope === "district" && filters.district) {
+    whereClause.district = filters.district;
+  }
+
+  const complaints = await prisma.complaint.findMany({ where: whereClause });
+
+  // Create notifications for all complaint participants
+  const notifications: any[] = [];
+  for (const complaint of complaints) {
+    const room = await getOrCreateRoomForComplaint(complaint.id);
+    const participants = await prisma.chatParticipant.findMany({ where: { roomId: room.id } });
+
+    for (const participant of participants) {
+      notifications.push({
+        userId: participant.userId,
+        roomId: room.id,
+        type: "broadcast_alert",
+      });
+    }
+
+    // Create system message
+    await sendMessage({
+      roomId: room.id,
+      senderId: adminId,
+      complaintId: complaint.id,
+      message: `[BROADCAST ALERT]\n${message}`,
+      messageType: "system_alert",
+    });
+  }
+
+  if (notifications.length) {
+    await prisma.chatNotification.createMany({ data: notifications });
+  }
+
+  // Audit log
+  await createAdminAuditLog(adminId, "admin.broadcast.alert", {
+    scope,
+    filters,
+    complaintCount: complaints.length,
+  });
+
+  return { broadcastTo: complaints.length };
+}
+
+// Audit Logging Helper
+export async function createAdminAuditLog(
+  adminId: string,
+  action: string,
+  metadata?: Record<string, any>,
+) {
+  try {
+    await prisma.auditLog.create({
+      data: {
+        userId: adminId,
+        action,
+        metadata: metadata || {},
+      },
+    });
+  } catch (e) {
+    // swallow errors
+  }
+}
+
 export default {
   getOrCreateRoomForComplaint,
   getRoomById,
@@ -423,4 +863,13 @@ export default {
   getRoomWorkspace,
   addMessageReaction,
   pinMessage,
+  getAdminChatRooms,
+  getAdminChatDetails,
+  sendAdminMessage,
+  reassignComplaint,
+  escalateComplaint,
+  freezeComplaintChat,
+  unfreezeComplaintChat,
+  broadcastAdminMessage,
+  createAdminAuditLog,
 };
