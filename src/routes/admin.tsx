@@ -8,7 +8,6 @@ const adminRoles = new Set([
   "district_officer",
   "department_officer",
   "admin",
-  "officer",
 ]);
 
 export const Route = createFileRoute("/admin")({
@@ -33,7 +32,7 @@ export const Route = createFileRoute("/admin")({
 
     if (!adminRoles.has(role)) {
       throw redirect({
-        to: "/dashboard",
+        to: role === "officer" ? "/officer/dashboard" : "/dashboard",
         replace: true,
       });
     }

@@ -92,6 +92,7 @@ export const loginSchema = z.object({
 export const adminLoginSchema = z.object({
   identifier: z.string().trim().min(1, "Email, username, or mobile is required"),
   password: z.string().min(1, "Password is required"),
+  portal: z.enum(["admin", "officer"]).default("admin"),
   rememberMe: z.boolean().optional().default(true),
 });
 
@@ -106,6 +107,7 @@ export const verifyOtpSchema = z.object({
     .trim()
     .regex(/^\d{6}$/, "OTP must be a 6-digit code"),
   purpose: z.enum(["registration", "password_reset", "admin_login"]).default("password_reset"),
+  portal: z.enum(["admin", "officer"]).default("admin"),
 });
 
 export const resetPasswordSchema = z

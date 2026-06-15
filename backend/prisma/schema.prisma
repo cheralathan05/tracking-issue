@@ -63,8 +63,8 @@ model User {
   escalationsResolved Escalation[] @relation("EscalationResolver")
   feedbackSubmitted Feedback[]
   complaintAttachments ComplaintAttachment[]
-  aiInsightsCreated AIInsight[]
   satisfactionFeedbackSubmitted SatisfactionFeedback[]
+  officerLocations OfficerLocation[]
 
   @@map("users")
 }
@@ -113,8 +113,8 @@ model Complaint {
   escalation Escalation?
   feedback Feedback?
   attachments ComplaintAttachment[]
-  aiInsights AIInsight[]
   satisfactionFeedback SatisfactionFeedback?
+  officerLocations OfficerLocation[]
 
   @@index([status])
   @@index([department])
@@ -396,30 +396,6 @@ model ComplaintAttachment {
   @@map("complaint_attachments")
 }
 
-model AIInsight {
-  id            String   @id @default(cuid())
-  complaintId   String
-  createdBy     String?
-  source        String   @default("ollama")
-  model         String
-  summary       String
-  urgency       String
-  department    String
-  escalationRisk String
-  sentiment     String
-  priority      String
-  confidence    Float    @default(0.7)
-  payload       Json?
-  createdAt     DateTime @default(now())
-
-  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
-  creator   User?     @relation(fields: [createdBy], references: [id], onDelete: SetNull)
-
-  @@index([complaintId])
-  @@index([createdBy])
-  @@map("ai_insights")
-}
-
 model SatisfactionFeedback {
   id                    String   @id @default(cuid())
   complaintId           String   @unique
@@ -438,4 +414,30 @@ model SatisfactionFeedback {
   @@index([rating])
   @@index([createdAt])
   @@map("satisfaction_feedback")
+}
+
+// Officer location tracking for real-time field operations
+model OfficerLocation {
+  id             String   @id @default(cuid())
+  officerId      String
+  complaintId    String
+  latitude       Float
+  longitude      Float
+  etaMinutes     Int?
+  accuracy       Float?
+  heading        Float?
+  speed          Float?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  officer   User      @relation(fields: [officerId], references: [id], onDelete: Cascade)
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+  @@index([officerId])
+  @@index([complaintId])
+  @@index([officerId, complaintId])
+  @@index([updatedAt])
+  @@index([isActive])
+  @@map("officer_locations")
 }

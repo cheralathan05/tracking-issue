@@ -64,6 +64,17 @@ function extractRefreshToken(req: Request) {
   return cookies[env.AUTH_REFRESH_COOKIE_NAME];
 }
 
+function extractAccessToken(req: Request) {
+  const authorization = req.headers.authorization;
+
+  if (authorization?.startsWith("Bearer ")) {
+    return authorization.slice(7).trim();
+  }
+
+  const cookies = parseCookies(req.headers.cookie);
+  return cookies[env.AUTH_ACCESS_COOKIE_NAME];
+}
+
 export async function register(req: Request, res: Response) {
   const result = await registerCitizen(req.body, {
     ipAddress: req.ip,
@@ -169,6 +180,27 @@ export async function profile(req: Request, res: Response) {
     success: true,
     message: "Profile fetched successfully",
     data: { user },
+  });
+}
+
+export async function session(req: Request, res: Response) {
+  const userId = req.tokenPayload?.sub;
+  const accessToken = extractAccessToken(req);
+
+  if (!userId || !accessToken) {
+    res.status(401).json({
+      success: false,
+      message: "Missing token",
+    });
+    return;
+  }
+
+  const user = await getCurrentCitizen(userId);
+
+  res.status(200).json({
+    success: true,
+    message: "Session fetched successfully",
+    data: { user, accessToken },
   });
 }
 

@@ -10,6 +10,7 @@ import { verifyOtp } from "@/lib/auth-api";
 const verifySearchSchema = z.object({
   email: z.string().optional(),
   purpose: z.enum(["registration", "password_reset", "admin_login"]).optional(),
+  portal: z.enum(["admin", "officer"]).optional(),
   returnTo: z.string().optional(),
 });
 
@@ -25,6 +26,7 @@ function VerifyOtpPage() {
   const [email, setEmail] = useState(search.email ?? "");
   const [otp, setOtp] = useState("");
   const [purpose, setPurpose] = useState(search.purpose ?? "password_reset");
+  const [portal, setPortal] = useState(search.portal ?? "admin");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isPasswordReset = purpose === "password_reset";
@@ -36,7 +38,7 @@ function VerifyOtpPage() {
     setError(null);
 
     try {
-      await verifyOtp(email, otp, purpose);
+      await verifyOtp(email, otp, purpose, portal);
 
       if (purpose === "password_reset") {
         await navigate({ to: "/reset-password", search: { email, returnTo: search.returnTo } });
@@ -157,6 +159,21 @@ function VerifyOtpPage() {
                 <option value="registration">Registration</option>
                 <option value="password_reset">Password Reset</option>
                 <option value="admin_login">Admin Login</option>
+              </select>
+            </div>
+          ) : null}
+
+          {purpose === "admin_login" && !search.portal ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="portal">Portal</Label>
+              <select
+                id="portal"
+                value={portal}
+                onChange={(event) => setPortal(event.target.value as typeof portal)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="admin">Admin</option>
+                <option value="officer">Officer</option>
               </select>
             </div>
           ) : null}

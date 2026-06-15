@@ -1,6 +1,8 @@
 import { useEffect, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
 
+import { getStoredAccessToken } from "@/lib/auth-api";
+
 function resolveSocketUrl() {
   const explicitSocketUrl = (import.meta.env.VITE_SOCKET_URL as string | undefined)?.trim();
   if (explicitSocketUrl) {
@@ -30,11 +32,11 @@ function getCookie(name: string) {
   return m ? decodeURIComponent(m[1]) : null;
 }
 
-export function useSocket(url = resolveSocketUrl(), enabled = true) {
+export function useSocket(url = resolveSocketUrl(), enabled = true, authToken?: string | null) {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    const token = getCookie("smartgov_access");
+    const token = authToken ?? getStoredAccessToken() ?? getCookie("smartgov_access");
     const shouldConnect = Boolean(enabled && token);
 
     if (!shouldConnect) {
@@ -73,7 +75,7 @@ export function useSocket(url = resolveSocketUrl(), enabled = true) {
       s.disconnect();
       socketRef.current = null;
     };
-  }, [url, enabled]);
+  }, [url, enabled, authToken]);
 
   const on = useCallback((event: string, handler: (...args: any[]) => void) => {
     socketRef.current?.on(event, handler);

@@ -36,7 +36,6 @@ import { Route as AdminSignupRouteImport } from './routes/admin_.signup'
 import { Route as AdminLoginRouteImport } from './routes/admin_.login'
 import { Route as AdminForgotPasswordRouteImport } from './routes/admin_.forgot-password'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
-import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminOfficersRouteImport } from './routes/admin.officers'
 import { Route as AdminInviteRouteImport } from './routes/admin.invite'
 import { Route as AdminDepartmentsRouteImport } from './routes/admin.departments'
@@ -45,7 +44,6 @@ import { Route as AdminChatMonitorRouteImport } from './routes/admin.chat-monito
 import { Route as AdminChatRouteImport } from './routes/admin.chat'
 import { Route as AdminAssignmentRouteImport } from './routes/admin.assignment'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
-import { Route as AppSettingsRouteImport } from './routes/_app.settings'
 import { Route as AppNotificationsRouteImport } from './routes/_app.notifications'
 import { Route as AppEscalationsRouteImport } from './routes/_app.escalations'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
@@ -192,11 +190,6 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminSettingsRoute = AdminSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminOfficersRoute = AdminOfficersRouteImport.update({
   id: '/officers',
   path: '/officers',
@@ -236,11 +229,6 @@ const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
   getParentRoute: () => AdminRoute,
-} as any)
-const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AppRoute,
 } as any)
 const AppNotificationsRoute = AppNotificationsRouteImport.update({
   id: '/notifications',
@@ -316,7 +304,6 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/escalations': typeof AppEscalationsRoute
   '/notifications': typeof AppNotificationsRoute
-  '/settings': typeof AppSettingsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/assignment': typeof AdminAssignmentRoute
   '/admin/chat': typeof AdminChatRoute
@@ -325,7 +312,6 @@ export interface FileRoutesByFullPath {
   '/admin/departments': typeof AdminDepartmentsRoute
   '/admin/invite': typeof AdminInviteRoute
   '/admin/officers': typeof AdminOfficersRoute
-  '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
@@ -363,7 +349,6 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/escalations': typeof AppEscalationsRoute
   '/notifications': typeof AppNotificationsRoute
-  '/settings': typeof AppSettingsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/assignment': typeof AdminAssignmentRoute
   '/admin/chat': typeof AdminChatRoute
@@ -372,7 +357,6 @@ export interface FileRoutesByTo {
   '/admin/departments': typeof AdminDepartmentsRoute
   '/admin/invite': typeof AdminInviteRoute
   '/admin/officers': typeof AdminOfficersRoute
-  '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/forgot-password': typeof AdminForgotPasswordRoute
   '/admin/login': typeof AdminLoginRoute
@@ -414,7 +398,6 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/escalations': typeof AppEscalationsRoute
   '/_app/notifications': typeof AppNotificationsRoute
-  '/_app/settings': typeof AppSettingsRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/assignment': typeof AdminAssignmentRoute
   '/admin/chat': typeof AdminChatRoute
@@ -423,7 +406,6 @@ export interface FileRoutesById {
   '/admin/departments': typeof AdminDepartmentsRoute
   '/admin/invite': typeof AdminInviteRoute
   '/admin/officers': typeof AdminOfficersRoute
-  '/admin/settings': typeof AdminSettingsRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin_/forgot-password': typeof AdminForgotPasswordRoute
   '/admin_/login': typeof AdminLoginRoute
@@ -465,7 +447,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/escalations'
     | '/notifications'
-    | '/settings'
     | '/admin/analytics'
     | '/admin/assignment'
     | '/admin/chat'
@@ -474,7 +455,6 @@ export interface FileRouteTypes {
     | '/admin/departments'
     | '/admin/invite'
     | '/admin/officers'
-    | '/admin/settings'
     | '/admin/users'
     | '/admin/forgot-password'
     | '/admin/login'
@@ -512,7 +492,6 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/escalations'
     | '/notifications'
-    | '/settings'
     | '/admin/analytics'
     | '/admin/assignment'
     | '/admin/chat'
@@ -521,7 +500,6 @@ export interface FileRouteTypes {
     | '/admin/departments'
     | '/admin/invite'
     | '/admin/officers'
-    | '/admin/settings'
     | '/admin/users'
     | '/admin/forgot-password'
     | '/admin/login'
@@ -562,7 +540,6 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_app/escalations'
     | '/_app/notifications'
-    | '/_app/settings'
     | '/admin/analytics'
     | '/admin/assignment'
     | '/admin/chat'
@@ -571,7 +548,6 @@ export interface FileRouteTypes {
     | '/admin/departments'
     | '/admin/invite'
     | '/admin/officers'
-    | '/admin/settings'
     | '/admin/users'
     | '/admin_/forgot-password'
     | '/admin_/login'
@@ -809,13 +785,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/settings': {
-      id: '/admin/settings'
-      path: '/settings'
-      fullPath: '/admin/settings'
-      preLoaderRoute: typeof AdminSettingsRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/officers': {
       id: '/admin/officers'
       path: '/officers'
@@ -871,13 +840,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/analytics'
       preLoaderRoute: typeof AdminAnalyticsRouteImport
       parentRoute: typeof AdminRoute
-    }
-    '/_app/settings': {
-      id: '/_app/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AppSettingsRouteImport
-      parentRoute: typeof AppRoute
     }
     '/_app/notifications': {
       id: '/_app/notifications'
@@ -964,7 +926,6 @@ interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
   AppEscalationsRoute: typeof AppEscalationsRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
-  AppSettingsRoute: typeof AppSettingsRoute
   AppComplaintsIdRoute: typeof AppComplaintsIdRoute
   AppComplaintsNewRoute: typeof AppComplaintsNewRoute
   AppComplaintsIndexRoute: typeof AppComplaintsIndexRoute
@@ -975,7 +936,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
   AppEscalationsRoute: AppEscalationsRoute,
   AppNotificationsRoute: AppNotificationsRoute,
-  AppSettingsRoute: AppSettingsRoute,
   AppComplaintsIdRoute: AppComplaintsIdRoute,
   AppComplaintsNewRoute: AppComplaintsNewRoute,
   AppComplaintsIndexRoute: AppComplaintsIndexRoute,
@@ -992,7 +952,6 @@ interface AdminRouteChildren {
   AdminDepartmentsRoute: typeof AdminDepartmentsRoute
   AdminInviteRoute: typeof AdminInviteRoute
   AdminOfficersRoute: typeof AdminOfficersRoute
-  AdminSettingsRoute: typeof AdminSettingsRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminComplaintsIdRoute: typeof AdminComplaintsIdRoute
@@ -1008,7 +967,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminDepartmentsRoute: AdminDepartmentsRoute,
   AdminInviteRoute: AdminInviteRoute,
   AdminOfficersRoute: AdminOfficersRoute,
-  AdminSettingsRoute: AdminSettingsRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminComplaintsIdRoute: AdminComplaintsIdRoute,

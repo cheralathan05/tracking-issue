@@ -24,9 +24,10 @@ interface Message {
 }
 
 interface ChatAreaProps {
-  threadId: string
+  threadId?: string | null
   messages?: Message[]
   onSendMessage?: (message: string) => Promise<void> | void
+  canSend?: boolean
   threadLabel?: string
   typingLabel?: string | null
   density?: 'default' | 'compact'
@@ -60,11 +61,13 @@ const mockMessages: Message[] = [
   },
 ]
 
-export default function ChatArea({ threadId, messages, onSendMessage, threadLabel, typingLabel, density = 'default' }: ChatAreaProps) {
+export default function ChatArea({ threadId, messages, onSendMessage, canSend = true, threadLabel, typingLabel, density = 'default' }: ChatAreaProps) {
   const [internalMessages, setInternalMessages] = useState<Message[]>(mockMessages)
   const [input, setInput] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const visibleMessages = messages ?? internalMessages
+  const hasActiveThread = Boolean(threadId)
+  const sendDisabled = !input.trim() || !canSend || !hasActiveThread
   const compact = density === 'compact'
 
   const scrollToBottom = () => {
@@ -78,7 +81,7 @@ export default function ChatArea({ threadId, messages, onSendMessage, threadLabe
   }, [visibleMessages])
 
   const sendMessage = async () => {
-    if (!input.trim()) return
+    if (!input.trim() || !canSend || !hasActiveThread) return
 
     if (onSendMessage) {
       await onSendMessage(input.trim())
@@ -298,7 +301,9 @@ export default function ChatArea({ threadId, messages, onSendMessage, threadLabe
                 leading-relaxed
               "
             >
-              {threadLabel ? `Live thread for ${threadLabel}` : 'Real-time complaint resolution with government officers'}
+              {hasActiveThread && threadLabel
+                ? `Live thread for ${threadLabel}`
+                : 'Select a complaint to start real-time communication with officers and administrators'}
             </p>
 
           </div>
@@ -418,171 +423,190 @@ export default function ChatArea({ threadId, messages, onSendMessage, threadLabe
         "
       >
 
-        <AnimatePresence>
-          {visibleMessages.map((message) => {
-            const isCitizen = message.type === 'citizen'
-            const isSystem = message.type === 'system'
-
-            if (isSystem) {
-              return (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.3 }}
-                  className="flex justify-center py-2"
+        {!hasActiveThread ? (
+          <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-5 px-6 text-center">
+            <h2 className="text-4xl font-black tracking-tight text-white">What Can We Help You With Today?</h2>
+            <p className="max-w-2xl text-sm leading-relaxed text-slate-400">Select a complaint thread from the left panel to keep this same layout and start live messaging.</p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {['Report Issue', 'Message Officer', 'Escalate', 'Track Status'].map((suggestion) => (
+                <span
+                  key={suggestion}
+                  className="rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-slate-200"
                 >
-                  <div
-                    className="
-                      px-3
-                      py-1.5
-                      rounded-xl
-                      border
-                      border-amber-500/25
-                      bg-amber-500/10
-                      text-amber-200
-                      text-xs
-                      font-medium
-                      backdrop-blur-xl
-                    "
-                  >
-                    {message.content}
-                  </div>
-                </motion.div>
-              )
-            }
+                  {suggestion}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            <AnimatePresence>
+              {visibleMessages.map((message) => {
+                const isCitizen = message.type === 'citizen'
+                const isSystem = message.type === 'system'
 
-            return (
-              <motion.div
-                key={message.id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.3 }}
-                className={`
-                  flex
-                  ${isCitizen ? 'justify-end' : 'justify-start'}
-                `}
-              >
-                <div
-                  className={`
-                    flex
-                    gap-3
-                      max-w-[72%]
-                    ${isCitizen ? 'flex-row-reverse' : 'flex-row'}
-                  `}
-                >
+                if (isSystem) {
+                  return (
+                    <motion.div
+                      key={message.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex justify-center py-2"
+                    >
+                      <div
+                        className="
+                          px-3
+                          py-1.5
+                          rounded-xl
+                          border
+                          border-amber-500/25
+                          bg-amber-500/10
+                          text-amber-200
+                          text-xs
+                          font-medium
+                          backdrop-blur-xl
+                        "
+                      >
+                        {message.content}
+                      </div>
+                    </motion.div>
+                  )
+                }
 
-                  {/* AVATAR */}
-                  <div
+                return (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    transition={{ duration: 0.3 }}
                     className={`
-                      h-10
-                      w-10
-                      flex-shrink-0
-                      rounded-xl
                       flex
-                      items-center
-                      justify-center
-                      font-bold
-                      text-xs
-                      ${
-                        isCitizen
-                          ? 'bg-gradient-to-br from-blue-400 to-cyan-500 text-white'
-                          : 'bg-white/10 text-blue-300 border border-white/20'
-                      }
+                      ${isCitizen ? 'justify-end' : 'justify-start'}
                     `}
                   >
-                    {message.avatar}
-                  </div>
-
-                  {/* MESSAGE BUBBLE */}
-                  <div className="flex flex-col gap-1 min-w-0">
-
-                    {/* BUBBLE CONTENT */}
-                    <div
-                      className={`
-                        rounded-[18px]
-                        px-4
-                        py-3
-                        border
-                        backdrop-blur-xl
-                        shadow-[0_0_30px_rgba(59,130,246,0.08)]
-                        break-words
-                        text-[13px]
-                        leading-relaxed
-                        ${
-                          isCitizen
-                            ? `
-                              bg-gradient-to-br
-                              from-blue-500/20
-                              via-blue-500/15
-                              to-cyan-500/10
-                              border-blue-500/30
-                              text-white
-                            `
-                            : `
-                              bg-white/[0.05]
-                              border-white/10
-                              text-slate-200
-                            `
-                        }
-                      `}
-                    >
-                      {message.content}
-                    </div>
-
-                    {/* METADATA */}
                     <div
                       className={`
                         flex
-                        items-center
-                        gap-2
-                        px-2
-                        text-[11px]
-                        text-slate-500
-                        ${isCitizen ? 'justify-end' : 'justify-start'}
+                        gap-3
+                          max-w-[72%]
+                        ${isCitizen ? 'flex-row-reverse' : 'flex-row'}
                       `}
                     >
-                      <span className="font-medium text-slate-400">
-                        {message.author}
-                      </span>
-                      <span>•</span>
-                      <span>{message.timestamp}</span>
+
+                      {/* AVATAR */}
+                      <div
+                        className={`
+                          h-10
+                          w-10
+                          flex-shrink-0
+                          rounded-xl
+                          flex
+                          items-center
+                          justify-center
+                          font-bold
+                          text-xs
+                          ${
+                            isCitizen
+                              ? 'bg-gradient-to-br from-blue-400 to-cyan-500 text-white'
+                              : 'bg-white/10 text-blue-300 border border-white/20'
+                          }
+                        `}
+                      >
+                        {message.avatar}
+                      </div>
+
+                      {/* MESSAGE BUBBLE */}
+                      <div className="flex flex-col gap-1 min-w-0">
+
+                        {/* BUBBLE CONTENT */}
+                        <div
+                          className={`
+                            rounded-[18px]
+                            px-4
+                            py-3
+                            border
+                            backdrop-blur-xl
+                            shadow-[0_0_30px_rgba(59,130,246,0.08)]
+                            break-words
+                            text-[13px]
+                            leading-relaxed
+                            ${
+                              isCitizen
+                                ? `
+                                  bg-gradient-to-br
+                                  from-blue-500/20
+                                  via-blue-500/15
+                                  to-cyan-500/10
+                                  border-blue-500/30
+                                  text-white
+                                `
+                                : `
+                                  bg-white/[0.05]
+                                  border-white/10
+                                  text-slate-200
+                                `
+                            }
+                          `}
+                        >
+                          {message.content}
+                        </div>
+
+                        {/* METADATA */}
+                        <div
+                          className={`
+                            flex
+                            items-center
+                            gap-2
+                            px-2
+                            text-[11px]
+                            text-slate-500
+                            ${isCitizen ? 'justify-end' : 'justify-start'}
+                          `}
+                        >
+                          <span className="font-medium text-slate-400">
+                            {message.author}
+                          </span>
+                          <span>•</span>
+                          <span>{message.timestamp}</span>
+                        </div>
+
+                      </div>
+
                     </div>
+                  </motion.div>
+                )
+              })}
+            </AnimatePresence>
 
-                  </div>
-
+            {/* TYPING INDICATOR */}
+            {typingLabel ? (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 pl-2 text-sm text-slate-400"
+              >
+                <div className="flex gap-1.5">
+                  {[0, 1, 2].map((dot) => (
+                    <motion.div
+                      key={dot}
+                      animate={{ y: [0, -3, 0] }}
+                      transition={{
+                        delay: dot * 0.1,
+                        duration: 0.7,
+                        repeat: Infinity,
+                      }}
+                      className="h-2 w-2 rounded-full bg-blue-400"
+                    />
+                  ))}
                 </div>
+                <span>{typingLabel} is typing...</span>
               </motion.div>
-            )
-          })}
-        </AnimatePresence>
-
-        {/* TYPING INDICATOR */}
-        {typingLabel ? (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3 pl-2 text-sm text-slate-400"
-          >
-            <div className="flex gap-1.5">
-              {[0, 1, 2].map((dot) => (
-                <motion.div
-                  key={dot}
-                  animate={{ y: [0, -3, 0] }}
-                  transition={{
-                    delay: dot * 0.1,
-                    duration: 0.7,
-                    repeat: Infinity,
-                  }}
-                  className="h-2 w-2 rounded-full bg-blue-400"
-                />
-              ))}
-            </div>
-            <span>{typingLabel} is typing...</span>
-          </motion.div>
-        ) : null}
+            ) : null}
+          </>
+        )}
 
         <div ref={messagesEndRef} />
       </div>
@@ -595,7 +619,8 @@ export default function ChatArea({ threadId, messages, onSendMessage, threadLabe
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, delay: 0.1 }}
         className="
-          relative
+          sticky
+          bottom-0
           z-10
           flex-shrink-0
           border-t
@@ -627,7 +652,7 @@ export default function ChatArea({ threadId, messages, onSendMessage, threadLabe
             value={input}
             onChange={(e) => setInput(e.target.value)}
             rows={2}
-            placeholder="Ask anything about your complaint..."
+            placeholder={hasActiveThread ? 'Ask anything about your complaint...' : 'Select a complaint thread to send your message...'}
             className="
               w-full
               resize-none
@@ -750,6 +775,7 @@ export default function ChatArea({ threadId, messages, onSendMessage, threadLabe
 
               <button
                 onClick={sendMessage}
+                disabled={sendDisabled}
                 className="
                   h-10
                   px-4
@@ -767,6 +793,8 @@ export default function ChatArea({ threadId, messages, onSendMessage, threadLabe
                   font-semibold
                   text-white
                   text-xs
+                  disabled:cursor-not-allowed
+                  disabled:opacity-50
                 "
               >
                 <Send className="w-3.5 h-3.5" />

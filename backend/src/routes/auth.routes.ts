@@ -18,6 +18,7 @@ import {
   login,
   logout,
   profile,
+  session,
   register,
   registerAdminUser,
   resetCitizenPassword,
@@ -38,6 +39,7 @@ authRouter.post("/admin-login", authLimiter, validateBody(adminLoginSchema), adm
 authRouter.post("/login", authLimiter, validateBody(loginSchema), login);
 authRouter.post("/refresh-token", authLimiter, refreshToken);
 authRouter.get("/profile", requireAuth, profile);
+authRouter.get("/session", requireAuth, session);
 authRouter.post("/forgot-password", otpLimiter, validateBody(forgotPasswordSchema), forgotPassword);
 authRouter.post("/verify-otp", otpLimiter, validateBody(verifyOtpSchema), verifyOtp);
 authRouter.post(

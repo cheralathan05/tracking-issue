@@ -292,54 +292,7 @@ function NewComplaint() {
         </p>
       </div>
 
-      <section className="max-w-full overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-card md:p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-2xl space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-              Complete workflow
-            </p>
-            <h2 className="text-xl font-semibold tracking-tight md:text-2xl">
-              Citizen to admin to officer, in one routed grievance flow
-            </h2>
-            <p className="text-sm leading-6 text-muted-foreground">
-              This page starts the case. The backend validates the payload, maps the category to a department,
-              assigns an active officer, stores the audit trail, and pushes realtime notifications to every role.
-            </p>
-          </div>
-          <div className="grid max-w-full gap-3 sm:grid-cols-3 md:min-w-0">
-            <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3">
-              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Auto-routing</div>
-              <div className="mt-1 text-sm font-semibold">{selectedDepartment}</div>
-            </div>
-            <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3">
-              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">SLA tracking</div>
-              <div className="mt-1 text-sm font-semibold">Priority-based deadline</div>
-            </div>
-            <div className="rounded-xl border border-border bg-secondary/30 px-4 py-3">
-              <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Realtime</div>
-              <div className="mt-1 text-sm font-semibold">Citizen, officer, admin sync</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-6">
-          {workflowStages.map((stage, index) => (
-            <div key={stage.title} className="rounded-xl border border-border bg-background/80 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                  {String(index + 1).padStart(2, "0")}
-                </div>
-                <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-                  {stage.actor}
-                </span>
-              </div>
-              <h3 className="mt-3 text-sm font-semibold text-foreground">{stage.title}</h3>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">{stage.description}</p>
-              <p className="mt-3 text-xs font-medium text-primary">{stage.outcome}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Workflow UI removed per request */}
 
       {/* Stepper */}
       <ol className="flex items-center gap-2 overflow-x-auto">

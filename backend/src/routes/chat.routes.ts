@@ -241,7 +241,7 @@ chatRouter.post("/rooms/:roomId/messages/:messageId/pin", requireChatAccess, asy
 // Get complaint header info for chat display
 chatRouter.get("/complaints/:complaintId/header", requireAuth, async (req, res, next) => {
   try {
-    const { complaintId } = req.params;
+    const complaintId = Array.isArray(req.params.complaintId) ? req.params.complaintId[0] : req.params.complaintId;
     const { prisma } = require("../config/prisma.js");
 
     const complaint = await prisma.complaint.findUnique({
@@ -294,7 +294,7 @@ chatRouter.get("/complaints/:complaintId/header", requireAuth, async (req, res, 
 // Escalate complaint from chat
 chatRouter.post("/complaints/:complaintId/escalate", requireAuth, async (req, res, next) => {
   try {
-    const { complaintId } = req.params;
+    const complaintId = Array.isArray(req.params.complaintId) ? req.params.complaintId[0] : req.params.complaintId;
     const { reason, level = "medium" } = req.body;
     const userId = req.user!.id;
     const { prisma } = require("../config/prisma.js");
@@ -337,7 +337,7 @@ chatRouter.post("/complaints/:complaintId/escalate", requireAuth, async (req, re
 // Get escalation details
 chatRouter.get("/complaints/:complaintId/escalation", requireAuth, async (req, res, next) => {
   try {
-    const { complaintId } = req.params;
+    const complaintId = Array.isArray(req.params.complaintId) ? req.params.complaintId[0] : req.params.complaintId;
     const { prisma } = require("../config/prisma.js");
 
     const escalation = await prisma.escalation.findUnique({
@@ -376,7 +376,7 @@ chatRouter.get("/complaints/:complaintId/escalation", requireAuth, async (req, r
 // Upload resolution proof
 chatRouter.post("/complaints/:complaintId/resolution-proof", requireChatAccess, async (req, res, next) => {
   try {
-    const { complaintId } = req.params;
+    const complaintId = Array.isArray(req.params.complaintId) ? req.params.complaintId[0] : req.params.complaintId;
     const { proofUrl, proofType, description } = req.body;
     const userId = req.user!.id;
     const { prisma } = require("../config/prisma.js");
@@ -434,7 +434,7 @@ chatRouter.post("/complaints/:complaintId/resolution-proof", requireChatAccess, 
 // Verify/approve resolution
 chatRouter.post("/complaints/:complaintId/verify-resolution", requireAuth, async (req, res, next) => {
   try {
-    const { complaintId } = req.params;
+    const complaintId = Array.isArray(req.params.complaintId) ? req.params.complaintId[0] : req.params.complaintId;
     const { verified, feedback } = req.body;
     const userId = req.user!.id;
     const { prisma } = require("../config/prisma.js");
@@ -530,7 +530,7 @@ chatRouter.get("/admin/rooms", requireAuth, async (req, res, next) => {
 // Get detailed admin view of specific chat
 chatRouter.get("/admin/rooms/:roomId/details", requireAuth, async (req, res, next) => {
   try {
-    const { roomId } = req.params;
+    const roomId = Array.isArray(req.params.roomId) ? req.params.roomId[0] : req.params.roomId;
     const userId = req.user!.id;
 
     const adminRoles = ["super_admin", "state_admin", "district_officer", "department_officer", "admin"];
@@ -552,7 +552,7 @@ chatRouter.get("/admin/rooms/:roomId/details", requireAuth, async (req, res, nex
 // Admin send message to chat
 chatRouter.post("/admin/rooms/:roomId/message", requireAuth, async (req, res, next) => {
   try {
-    const { roomId } = req.params;
+    const roomId = Array.isArray(req.params.roomId) ? req.params.roomId[0] : req.params.roomId;
     const { message, attachment } = req.body;
     const userId = req.user!.id;
 
@@ -596,7 +596,7 @@ chatRouter.post("/admin/rooms/:roomId/message", requireAuth, async (req, res, ne
 // Admin reassign complaint
 chatRouter.post("/admin/complaints/:complaintId/reassign", requireAuth, async (req, res, next) => {
   try {
-    const { complaintId } = req.params;
+    const complaintId = Array.isArray(req.params.complaintId) ? req.params.complaintId[0] : req.params.complaintId;
     const { newOfficerId, reason } = req.body;
     const userId = req.user!.id;
 
@@ -625,7 +625,7 @@ chatRouter.post("/admin/complaints/:complaintId/reassign", requireAuth, async (r
 // Admin escalate complaint
 chatRouter.post("/admin/complaints/:complaintId/escalate", requireAuth, async (req, res, next) => {
   try {
-    const { complaintId } = req.params;
+    const complaintId = Array.isArray(req.params.complaintId) ? req.params.complaintId[0] : req.params.complaintId;
     const { level, reason } = req.body;
     const userId = req.user!.id;
 
@@ -654,7 +654,7 @@ chatRouter.post("/admin/complaints/:complaintId/escalate", requireAuth, async (r
 // Admin freeze/unfreeze chat
 chatRouter.post("/admin/complaints/:complaintId/freeze-chat", requireAuth, async (req, res, next) => {
   try {
-    const { complaintId } = req.params;
+    const complaintId = Array.isArray(req.params.complaintId) ? req.params.complaintId[0] : req.params.complaintId;
     const { reason } = req.body;
     const userId = req.user!.id;
 
@@ -677,7 +677,7 @@ chatRouter.post("/admin/complaints/:complaintId/freeze-chat", requireAuth, async
 
 chatRouter.post("/admin/complaints/:complaintId/unfreeze-chat", requireAuth, async (req, res, next) => {
   try {
-    const { complaintId } = req.params;
+    const complaintId = Array.isArray(req.params.complaintId) ? req.params.complaintId[0] : req.params.complaintId;
     const userId = req.user!.id;
 
     const adminRoles = ["super_admin", "state_admin", "district_officer", "department_officer", "admin"];
@@ -724,3 +724,4 @@ chatRouter.post("/admin/broadcast-message", requireAuth, async (req, res, next) 
     next(err);
   }
 });
+

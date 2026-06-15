@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
 import bcrypt from "bcrypt";
+import { env } from "../config/env.js";
 
-const PASSWORD_SALT_ROUNDS = 12;
+const PASSWORD_SALT_ROUNDS = env.BCRYPT_ROUNDS;
 const OTP_SALT_ROUNDS = 10;
 
 export function generateOtp(length = 6): string {

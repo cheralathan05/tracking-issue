@@ -4,7 +4,6 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma.js";
 import { AppError } from "../utils/errors.js";
 import * as chatService from "./chat.service.js";
-import { analyzeComplaintWithOllama } from "./ollama.service.js";
 import type {
   ComplaintAssignmentInput,
   ComplaintQueryInput,
@@ -204,40 +203,8 @@ export async function createComplaint(input: ComplaintSubmissionInput, reporterU
       if (reporterUserId) {
         safeEmitToUser(reporterUserId, "complaint_created", basePayload);
       }
-
-      const intelligence = await analyzeComplaintWithOllama({
-        title: complaint.title,
-        category: complaint.category,
-        description: complaint.description,
-        department,
-        city: complaint.city,
-        district: complaint.district,
-      });
-
-      await prisma.complaint.update({
-        where: { id: complaint.id },
-        data: {
-          assignedDepartment: intelligence.department,
-          priority: intelligence.priority,
-          timeline: toJsonValue([
-            ...timeline,
-            buildTimelineEntry(
-              "AI analysis completed",
-              "Civic Bridge AI",
-              `${intelligence.summary} Urgency: ${intelligence.urgency}. Sentiment: ${intelligence.sentiment}.`,
-            ),
-          ]),
-        },
-      });
-
-      safeEmitToRole("admin", "ai_response_stream", {
-        complaintId: complaint.id,
-        grievanceId,
-        roomId: room.id,
-        intelligence,
-      });
     } catch {
-      // best-effort intelligence wiring; submission must remain resilient.
+      // best-effort event emission; submission must remain resilient.
     }
   })();
 

@@ -6,7 +6,6 @@ import {
   Users,
   Building2,
   BarChart3,
-  Settings,
   LogOut,
   Shield,
   Bell,
@@ -27,14 +26,12 @@ import { getProfile, logout, type AuthUser } from "@/lib/auth-api";
 const nav = [
   { to: "/admin/dashboard", label: "Overview", icon: LayoutDashboard },
   { to: "/admin/complaints", label: "Complaints", icon: ClipboardList },
-  { to: "/admin/chat", label: "Chat Monitoring", icon: MessageSquare },
   { to: "/admin/assignment", label: "Smart assignment", icon: Sparkles },
   { to: "/admin/officers", label: "Officers", icon: Briefcase },
   { to: "/admin/invite", label: "Invite officer", icon: UserPlus },
   { to: "/admin/departments", label: "Departments", icon: Building2 },
   { to: "/admin/users", label: "Citizens", icon: Users },
   { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/admin/settings", label: "Settings", icon: Settings },
 ] as const;
 
 export function AdminLayout() {

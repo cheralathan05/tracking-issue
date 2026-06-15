@@ -4,6 +4,7 @@ import { prisma } from "../config/prisma.js";
 import { AppError } from "../utils/errors.js";
 import { createNotification, createNotificationsForRole } from "./notification.service.js";
 import { createEscalation as createEscalationRecord } from "./escalation.service.js";
+import { storeOfficerLocation } from "./location.service.js";
 
 type Viewer = {
   id: string;
@@ -388,6 +389,18 @@ export async function updateFieldGps(
       timeline: toJson([...timeline, entry]),
     },
   });
+
+  // Store location in officer_locations table for real-time tracking
+  try {
+    await storeOfficerLocation(complaint.id, viewer.id, {
+      latitude: payload.latitude,
+      longitude: payload.longitude,
+      etaMinutes: payload.etaMinutes,
+    });
+  } catch (locationError) {
+    console.error("Failed to store officer location:", locationError);
+    // Don't fail the GPS update if location storage fails
+  }
 
   if (complaint.reporterUserId) {
     await createNotification(complaint.reporterUserId, {

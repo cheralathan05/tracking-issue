@@ -34,7 +34,7 @@ function AdminLoginPage() {
     setError(null);
 
     try {
-      const result = await loginAdmin(email, password, true);
+      const result = await loginAdmin(email, password, true, "admin");
       const returnTo = search.returnTo?.startsWith("/") ? search.returnTo : "/admin/dashboard";
 
       // If server returned an authenticated user (session cookies set), go straight to admin
@@ -45,7 +45,7 @@ function AdminLoginPage() {
 
       const resolvedEmail = result.data?.email ?? email;
       await navigate({
-        to: `/verify-otp?email=${encodeURIComponent(resolvedEmail)}&purpose=admin_login&returnTo=${encodeURIComponent(returnTo)}` as never,
+        to: `/verify-otp?email=${encodeURIComponent(resolvedEmail)}&purpose=admin_login&portal=admin&returnTo=${encodeURIComponent(returnTo)}` as never,
       });
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to sign in");

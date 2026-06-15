@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, Search, Send, AlertTriangle, Lock, Unlock, UserSwap, ArrowUp } from "lucide-react";
+import { AlertCircle, Search, Send, AlertTriangle, Lock, Unlock, ArrowLeftRight, ArrowUp } from "lucide-react";
 import { ensureAuthSession, getProfile } from "@/lib/auth-api";
 import {
   listAdminChatRooms,
@@ -438,7 +438,7 @@ function AdminChatPage() {
                         onClick={handleReassignOfficer}
                         className="text-xs"
                       >
-                        <UserSwap className="w-3 h-3 mr-1" /> Reassign Officer
+                        <ArrowLeftRight className="w-3 h-3 mr-1" /> Reassign Officer
                       </Button>
                       <Button
                         size="sm"

@@ -229,15 +229,12 @@ async function findUserByIdentifier(identifier: string) {
   });
 }
 
-function requireRoleForAdmin(role: string) {
-  return [
-    "super_admin",
-    "state_admin",
-    "district_officer",
-    "department_officer",
-    "admin",
-    "officer",
-  ].includes(role);
+function requireRoleForPortal(role: string, portal: "admin" | "officer") {
+  if (portal === "officer") {
+    return role === "officer";
+  }
+
+  return ["super_admin", "state_admin", "district_officer", "department_officer", "admin"].includes(role);
 }
 
 export async function registerCitizen(input: RegisterInput, meta?: AuthMeta) {
@@ -296,7 +293,7 @@ export async function registerCitizen(input: RegisterInput, meta?: AuthMeta) {
 export async function registerAdmin(input: AdminRegisterInput, meta?: AuthMeta) {
   const email = normalizeEmail(input.email);
   const mobile = normalizeMobile(input.mobile);
-  if (!requireRoleForAdmin(input.role)) {
+  if (!requireRoleForPortal(input.role, "admin")) {
     throw new AppError("Invalid administrator role", 400);
   }
 
@@ -427,6 +424,7 @@ export async function loginCitizen(input: LoginInput, meta?: AuthMeta) {
 
 export async function loginAdmin(input: AdminLoginInput, meta?: AuthMeta) {
   const user = await findUserByIdentifier(input.identifier);
+  const portal = input.portal ?? "admin";
 
   if (!user) {
     // If identifier looks like an email, check for a pending officer invitation
@@ -441,8 +439,11 @@ export async function loginAdmin(input: AdminLoginInput, meta?: AuthMeta) {
     throw new AppError("Invalid login credentials", 401);
   }
 
-  if (!requireRoleForAdmin(String(user.role))) {
-    throw new AppError("Use citizen login for public accounts", 403);
+  if (!requireRoleForPortal(String(user.role), portal)) {
+    throw new AppError(
+      portal === "officer" ? "Use officer login for field staff accounts" : "Use admin login for management accounts",
+      403,
+    );
   }
 
   await ensureNotLocked(user);
@@ -613,13 +614,17 @@ export async function verifyOtpFlow(input: VerifyOtpInput, meta?: AuthMeta) {
 
   if (input.purpose === "admin_login") {
     const user = await getUserByEmail(email);
+    const portal = input.portal ?? "admin";
 
     if (!user) {
       throw new AppError("Invalid admin login attempt", 401);
     }
 
-    if (!requireRoleForAdmin(String(user.role))) {
-      throw new AppError("Use citizen login for public accounts", 403);
+    if (!requireRoleForPortal(String(user.role), portal)) {
+      throw new AppError(
+        portal === "officer" ? "Use officer login for field staff accounts" : "Use admin login for management accounts",
+        403,
+      );
     }
 
     const session = await issueSession(user.id, true, meta);

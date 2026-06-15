@@ -34,7 +34,7 @@ function OfficerLoginPage() {
     setError(null);
 
     try {
-      const result = await loginAdmin(email, password, true);
+      const result = await loginAdmin(email, password, true, "officer");
 
       if (result.data?.user) {
         await navigate({ to: "/officer/dashboard" });
@@ -43,7 +43,7 @@ function OfficerLoginPage() {
 
       const resolvedEmail = result.data?.email ?? email;
       await navigate({
-        to: `/verify-otp?email=${encodeURIComponent(resolvedEmail)}&purpose=admin_login&returnTo=/officer/dashboard` as never,
+        to: `/verify-otp?email=${encodeURIComponent(resolvedEmail)}&purpose=admin_login&portal=officer&returnTo=/officer/dashboard` as never,
       });
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Unable to sign in");

@@ -101,7 +101,7 @@ function mapMessage(message: ComplaintMessageRecord): WorkspaceMessage {
 }
 
 type ChatWorkspaceProps = {
-  view?: 'all' | 'mine' | 'assigned'
+  view?: 'all' | 'mine' | 'assigned' | 'monitor' | 'citizen'
   workspaceTitle?: string
   variant?: 'default' | 'admin'
 }
@@ -115,19 +115,23 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
   const [loading, setLoading] = useState(true)
 
   const isAdminWorkspace = variant === 'admin'
+  const complaintView = view === 'monitor' ? 'all' : view === 'citizen' ? 'mine' : view
 
   const { on, emit } = useSocket(undefined, true)
 
   useEffect(() => {
     let mounted = true
 
-    listComplaints({ view, summaryOnly: false, limit: 12 })
+    listComplaints({ view: complaintView, summaryOnly: false, limit: 12 })
       .then((result) => {
         if (!mounted) return
 
         const liveComplaints = result.complaints ?? []
         setComplaints(liveComplaints)
-        setSelectedThread((current) => current ?? liveComplaints[0]?.id ?? null)
+        setSelectedThread((current) => {
+          if (!current) return null
+          return liveComplaints.some((complaint) => complaint.id === current) ? current : null
+        })
       })
       .catch(() => {
         if (mounted) {
@@ -143,7 +147,7 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
     return () => {
       mounted = false
     }
-  }, [])
+  }, [complaintView])
 
   const visibleThreads = useMemo(() => complaints.map(toThread), [complaints])
   const selectedComplaint = useMemo(
@@ -160,6 +164,9 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
         setMessages([])
         return
       }
+
+      setRoomId(null)
+      setMessages([])
 
       const { room } = await createComplaintChatRoom(selectedComplaint.id)
       if (!mounted) return
@@ -242,9 +249,11 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
     <div
       className="
         relative
-        min-h-full
+        h-full
         w-full
         min-h-0
+        min-h-full
+        overflow-hidden
         bg-gradient-to-b
         from-[#040813]
         via-[#050816]
@@ -313,7 +322,7 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
             flex-1
             min-h-0
             w-full
-            overflow-visible
+            overflow-hidden
             px-0
             py-0
           "
@@ -334,7 +343,7 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
               transition={{
                 duration: 0.4,
               }}
-              className="flex w-full min-h-0"
+              className="flex h-full w-full min-h-0"
             >
               {/* ===================================================
                  GRID LAYOUT - 3 COLUMN STRUCTURE
@@ -343,6 +352,7 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
                 className={`
                   grid
                   w-full
+                  h-full
                   min-h-0
                   gap-3
                   ${isAdminWorkspace ? 'lg:grid-cols-[280px_minmax(0,1fr)_340px]' : 'lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]'}
@@ -404,27 +414,16 @@ export default function ChatWorkspace({ view = 'mine', workspaceTitle, variant =
                     "
                   >
 
-                    <div className="min-w-0 min-h-0 overflow-hidden">
-                      {selectedThread ? (
-                        <ChatArea
-                          density={isAdminWorkspace ? 'compact' : 'default'}
-                          threadId={selectedThread}
-                          messages={messages}
-                          onSendMessage={handleSendMessage}
-                          typingLabel={typingLabel}
-                          threadLabel={selectedComplaint?.title ?? selectedComplaint?.grievanceId ?? 'Selected complaint'}
-                        />
-                      ) : (
-                        <div className="flex min-h-[420px] items-center justify-center rounded-[32px] border border-white/10 bg-white/[0.03] backdrop-blur-3xl">
-                          <div className="space-y-5 text-center">
-                            <div className="text-7xl">💬</div>
-                            <h3 className="text-3xl font-black tracking-tight">Select a conversation</h3>
-                            <p className="mx-auto max-w-md text-base leading-8 text-slate-400">
-                              Choose a complaint thread to start realtime communication with officers and administrators.
-                            </p>
-                          </div>
-                        </div>
-                      )}
+                    <div className="h-full min-w-0 min-h-0 overflow-hidden">
+                      <ChatArea
+                        density={isAdminWorkspace ? 'compact' : 'default'}
+                        threadId={selectedThread}
+                        messages={messages}
+                        onSendMessage={handleSendMessage}
+                        typingLabel={typingLabel}
+                        canSend={Boolean(selectedThread && roomId)}
+                        threadLabel={selectedComplaint?.title ?? selectedComplaint?.grievanceId ?? 'Selected complaint'}
+                      />
                     </div>
 
                   </motion.div>

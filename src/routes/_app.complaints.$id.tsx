@@ -163,6 +163,34 @@ function ComplaintDetail() {
               )}
             </div>
           </div>
+
+          {complaint.resolutionEvidence.length > 0 ? (
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
+              <h2 className="font-semibold">Resolution proof</h2>
+              {complaint.resolutionSummary ? <p className="mt-2 text-sm text-muted-foreground">{complaint.resolutionSummary}</p> : null}
+              <div className="mt-4 space-y-3">
+                {complaint.resolutionEvidence.map((item) => {
+                  const fileUrl = item.dataUrl || item.url || "";
+
+                  return (
+                    <div key={`${item.name}-${item.size}-${fileUrl}`} className="rounded-xl border border-border bg-secondary/30 p-3 text-sm">
+                      <div className="flex items-center gap-2 font-medium">
+                        {item.type.startsWith("image/") ? <ImageIcon className="h-4 w-4 text-primary" /> : <FileText className="h-4 w-4 text-primary" />}
+                        {item.name}
+                      </div>
+                      {item.type.startsWith("image/") && fileUrl ? (
+                        <img src={fileUrl} alt={item.name} className="mt-3 max-h-44 w-full rounded-lg object-cover" />
+                      ) : fileUrl ? (
+                        <a href={fileUrl} target="_blank" rel="noreferrer" className="mt-3 inline-block text-xs font-medium text-primary hover:underline">
+                          Open attachment
+                        </a>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

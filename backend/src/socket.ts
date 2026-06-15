@@ -96,3 +96,59 @@ export function emitToRoom(roomId: string, event: string, payload: unknown) {
 
   io.to(`room:${roomId}`).emit(event, payload);
 }
+
+/**
+ * Emit officer location update to a complaint room
+ * Citizen and admin watching this complaint will receive it
+ */
+export function emitOfficerLocationUpdate(complaintId: string, locationData: unknown) {
+  if (!io) {
+    return;
+  }
+
+  io.to(`complaint:${complaintId}`).emit("officer-location-updated", locationData);
+}
+
+/**
+ * Emit officer location to a specific citizen
+ */
+export function emitLocationToUser(userId: string, locationData: unknown) {
+  if (!io) {
+    return;
+  }
+
+  io.to(`user:${userId}`).emit("officer-location-update", locationData);
+}
+
+/**
+ * Emit location update to admin monitoring
+ */
+export function broadcastLocationUpdate(event: string, payload: unknown) {
+  if (!io) {
+    return;
+  }
+
+  io.to("admin_monitoring").emit(event, payload);
+}
+
+/**
+ * Clients join a complaint's location room to receive live tracking
+ * This is called on the client side via socket.io
+ */
+export function setupLocationSocket() {
+  if (!io) return;
+
+  io.on("connection", (socket: Socket) => {
+    // Officer joins complaint location room
+    socket.on("joinComplaintTracking", (complaintId: string) => {
+      socket.join(`complaint:${complaintId}`);
+      console.log(`Client joined location tracking for complaint ${complaintId}`);
+    });
+
+    // Officer leaves complaint location room
+    socket.on("leaveComplaintTracking", (complaintId: string) => {
+      socket.leave(`complaint:${complaintId}`);
+      console.log(`Client left location tracking for complaint ${complaintId}`);
+    });
+  });
+}

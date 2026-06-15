@@ -1,4 +1,5 @@
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim() || "/api";
+const AUTH_ACCESS_TOKEN_STORAGE_KEY = "smartgov_access_token";
 
 function buildUrl(path: string) {
   const normalizedBase = API_BASE_URL.replace(/\/$/, "");
@@ -12,17 +13,17 @@ export async function ensureAuthSession(): Promise<string | null> {
   }
 
   try {
-    const profile = await getProfile();
+    const session = await getAuthSession();
 
-    if (profile.data?.user) {
+    if (session?.user) {
       return "session";
     }
   } catch {
     try {
       await request("/auth/refresh-token", { method: "POST" });
-      const profile = await getProfile();
+      const session = await getAuthSession();
 
-      if (profile.data?.user) {
+      if (session?.user) {
         return "session";
       }
     } catch {
@@ -41,6 +42,11 @@ export type AuthUser = {
   mobile?: string;
   state?: string;
   district?: string;
+};
+
+export type AuthSession = {
+  user: AuthUser;
+  accessToken: string;
 };
 
 type ApiResponse<T> = {
@@ -117,6 +123,27 @@ async function request<T>(path: string, init?: RequestInit): Promise<ApiResponse
   return payload ?? { success: true, message: "OK" };
 }
 
+export function getStoredAccessToken() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return sessionStorage.getItem(AUTH_ACCESS_TOKEN_STORAGE_KEY);
+}
+
+export function setStoredAccessToken(token: string | null) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (token) {
+    sessionStorage.setItem(AUTH_ACCESS_TOKEN_STORAGE_KEY, token);
+    return;
+  }
+
+  sessionStorage.removeItem(AUTH_ACCESS_TOKEN_STORAGE_KEY);
+}
+
 export function loginCitizen(identifier: string, password: string, rememberMe = false) {
   return request<{ user: { role: string; email: string; fullName: string } }>(
     "/auth/login",
@@ -127,10 +154,15 @@ export function loginCitizen(identifier: string, password: string, rememberMe = 
   );
 }
 
-export function loginAdmin(email: string, password: string, rememberMe = true) {
+export function loginAdmin(
+  email: string,
+  password: string,
+  rememberMe = true,
+  portal: "admin" | "officer" = "admin",
+) {
   return request<{ user?: AuthUser; otp?: string; email?: string }>("/auth/admin-login", {
     method: "POST",
-    body: JSON.stringify({ identifier: email, password, rememberMe }),
+    body: JSON.stringify({ identifier: email, password, rememberMe, portal }),
   });
 }
 
@@ -179,10 +211,11 @@ export function verifyOtp(
   email: string,
   otp: string,
   purpose: "registration" | "password_reset" | "admin_login",
+  portal: "admin" | "officer" = "admin",
 ) {
   return request("/auth/verify-otp", {
     method: "POST",
-    body: JSON.stringify({ email, otp, purpose }),
+    body: JSON.stringify({ email, otp, purpose, portal }),
   });
 }
 
@@ -197,6 +230,36 @@ export function getProfile() {
   return request<{ user: AuthUser }>("/auth/profile", { method: "GET" });
 }
 
+export async function getAuthSession() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const response = await fetch(buildUrl("/auth/session"), {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (response.status === 401) {
+    setStoredAccessToken(null);
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(await response.text().catch(() => "Request failed"));
+  }
+
+  const payload = (await response.json()) as { data?: AuthSession };
+  const session = payload.data ?? null;
+
+  if (session?.accessToken) {
+    setStoredAccessToken(session.accessToken);
+  }
+
+  return session;
+}
+
 export function logout() {
+  setStoredAccessToken(null);
   return request("/auth/logout", { method: "POST" });
 }

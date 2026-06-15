@@ -11,7 +11,6 @@ import {
   Menu,
   MessageSquare,
   Search,
-  Settings,
   Shield,
   X,
 } from "lucide-react";
@@ -23,10 +22,8 @@ const nav = [
   { to: "/dashboard", label: "Dashboard", icon: Home },
   { to: "/complaints/new", label: "New Complaint", icon: FilePlus2 },
   { to: "/complaints", label: "My Complaints", icon: ListChecks },
-  { to: "/chat", label: "Chat", icon: MessageSquare },
   { to: "/escalations", label: "Escalated", icon: AlertTriangle },
   { to: "/notifications", label: "Notifications", icon: Bell },
-  { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
 export function CitizenLayout({ initialUser }: { initialUser: AuthUser | null }) {

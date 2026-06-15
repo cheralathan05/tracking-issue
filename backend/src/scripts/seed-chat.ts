@@ -1,12 +1,13 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
+import { env } from "../config/env.js";
 
 const prisma = new PrismaClient();
 
 async function seed() {
   console.log("Seeding chat demo data...");
 
-  const hashed = await bcrypt.hash("Password123!", 10);
+  const hashed = await bcrypt.hash("Password123!", env.BCRYPT_ROUNDS);
 
   const citizen = await prisma.user.upsert({
     where: { email: "citizen@example.com" },

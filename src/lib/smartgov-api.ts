@@ -107,6 +107,7 @@ export interface ComplaintEvidence {
   type: string;
   size: number;
   dataUrl: string;
+  url?: string;
 }
 
 export interface ComplaintTimelineEntry {
