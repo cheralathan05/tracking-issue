@@ -10,7 +10,19 @@ export function initSocket(server: HttpServer, origins: string[]) {
 
   io = new IOServer(server, {
     cors: {
-      origin: origins,
+      origin(origin, callback) {
+        if (
+          !origin ||
+          origins.includes("*") ||
+          origins.includes(origin) ||
+          origin.endsWith(".onrender.com") ||
+          /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+        ) {
+          callback(null, true);
+        } else {
+          callback(null, false);
+        }
+      },
       methods: ["GET", "POST"],
       credentials: true,
     },

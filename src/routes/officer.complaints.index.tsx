@@ -129,7 +129,7 @@ function OfficerComplaintsList() {
                 </tr>
               ) : null}
               {!loading && list.map((c) => (
-                <tr key={c.grievanceId} className="hover:bg-secondary/40">
+                <tr key={c.complaintId} className="hover:bg-secondary/40">
                   <td className="px-4 py-3 font-mono text-xs">{c.complaintId}</td>
                   <td className="px-4 py-3">
                     <div className="font-medium">{c.title}</div>

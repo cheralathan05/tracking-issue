@@ -61,9 +61,9 @@ export default function TopNavbar({ compact = false }: TopNavbarProps) {
       ===================================================== */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
 
-        <div className="absolute top-[-120px] left-[10%] h-[240px] w-[240px] rounded-full bg-blue-500/10 blur-[100px]" />
+        <div className="absolute top-[-120px] left-[10%] h-[240px] w-[240px] rounded-full bg-white/[0.04] blur-[100px]" />
 
-        <div className="absolute bottom-[-120px] right-[15%] h-[240px] w-[240px] rounded-full bg-indigo-500/10 blur-[100px]" />
+        <div className="absolute bottom-[-120px] right-[15%] h-[240px] w-[240px] rounded-full bg-zinc-400/[0.05] blur-[100px]" />
 
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:120px]" />
 
@@ -96,9 +96,9 @@ export default function TopNavbar({ compact = false }: TopNavbarProps) {
             <motion.div
               animate={{
                 boxShadow: [
-                  '0 0 12px rgba(59,130,246,0.25)',
-                  '0 0 30px rgba(59,130,246,0.45)',
-                  '0 0 12px rgba(59,130,246,0.25)',
+                  '0 0 12px rgba(255,255,255,0.1)',
+                  '0 0 26px rgba(255,255,255,0.22)',
+                  '0 0 12px rgba(255,255,255,0.1)',
                 ],
               }}
               transition={{
@@ -115,24 +115,24 @@ export default function TopNavbar({ compact = false }: TopNavbarProps) {
                 overflow-hidden
                 rounded-xl
                 border
-                border-blue-400/30
+                border-white/20
                 bg-gradient-to-br
-                from-blue-400
-                via-indigo-500
-                to-purple-600
+                from-zinc-100
+                via-zinc-400
+                to-zinc-800
               "
             >
 
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.4),transparent_40%)]" />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.6),transparent_40%)]" />
 
-              <span className="relative z-10 text-lg font-black text-white">
+              <span className="relative z-10 text-lg font-black text-black">
                 CB
               </span>
 
             </motion.div>
 
             {/* OUTER GLOW */}
-            <div className="absolute inset-0 rounded-xl bg-blue-400/20 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <div className="absolute inset-0 rounded-xl bg-white/10 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
           </div>
 
@@ -151,9 +151,9 @@ export default function TopNavbar({ compact = false }: TopNavbarProps) {
               <span
                 className="
                   bg-gradient-to-r
-                  from-blue-300
-                  via-indigo-200
-                  to-purple-300
+                  from-white
+                  via-zinc-200
+                  to-zinc-400
                   bg-clip-text
                   text-transparent
                 "
@@ -165,13 +165,13 @@ export default function TopNavbar({ compact = false }: TopNavbarProps) {
 
             <div className="mt-1 flex items-center gap-2">
 
-              <span className="text-xs uppercase tracking-[0.25em] text-slate-500">
+              <span className="text-xs uppercase tracking-[0.25em] text-zinc-500">
                 Flow Workspace
               </span>
 
-              <div className="h-1 w-1 rounded-full bg-slate-600" />
+              <div className="h-1 w-1 rounded-full bg-zinc-600" />
 
-              <span className="text-xs text-blue-300">
+              <span className="text-xs text-zinc-300">
                 Enterprise
               </span>
 

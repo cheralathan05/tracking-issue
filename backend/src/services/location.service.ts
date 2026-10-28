@@ -1,6 +1,5 @@
 import { prisma } from "../config/prisma.js";
 import { AppError } from "../utils/errors.js";
-import type { Viewer } from "../utils/types.js";
 
 interface LocationUpdateInput {
   latitude: number;
@@ -41,44 +40,59 @@ export async function storeOfficerLocation(
     throw new AppError("Complaint not assigned to this officer", 403);
   }
 
-  // Store location with upsert (create or update by officerId + complaintId)
-  const location = await prisma.officerLocation.upsert({
+  // Store location with create or update by officerId + complaintId
+  const existingLocation = await prisma.officerLocation.findFirst({
     where: {
-      officerId_complaintId: {
-        officerId,
-        complaintId,
-      },
-    },
-    create: {
       officerId,
       complaintId,
-      latitude: payload.latitude,
-      longitude: payload.longitude,
-      etaMinutes: payload.etaMinutes,
-      accuracy: payload.accuracy,
-      heading: payload.heading,
-      speed: payload.speed,
-      isActive: true,
-    },
-    update: {
-      latitude: payload.latitude,
-      longitude: payload.longitude,
-      etaMinutes: payload.etaMinutes,
-      accuracy: payload.accuracy,
-      heading: payload.heading,
-      speed: payload.speed,
-      updatedAt: new Date(),
-    },
-    include: {
-      officer: {
-        select: {
-          id: true,
-          fullName: true,
-          department: true,
-        },
-      },
     },
   });
+
+  const location = existingLocation
+    ? await prisma.officerLocation.update({
+        where: { id: existingLocation.id },
+        data: {
+          latitude: payload.latitude,
+          longitude: payload.longitude,
+          etaMinutes: payload.etaMinutes,
+          accuracy: payload.accuracy,
+          heading: payload.heading,
+          speed: payload.speed,
+          isActive: true,
+          updatedAt: new Date(),
+        },
+        include: {
+          officer: {
+            select: {
+              id: true,
+              fullName: true,
+              department: true,
+            },
+          },
+        },
+      })
+    : await prisma.officerLocation.create({
+        data: {
+          officerId,
+          complaintId,
+          latitude: payload.latitude,
+          longitude: payload.longitude,
+          etaMinutes: payload.etaMinutes,
+          accuracy: payload.accuracy,
+          heading: payload.heading,
+          speed: payload.speed,
+          isActive: true,
+        },
+        include: {
+          officer: {
+            select: {
+              id: true,
+              fullName: true,
+              department: true,
+            },
+          },
+        },
+      });
 
   return {
     location: {

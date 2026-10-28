@@ -55,7 +55,7 @@ type ApiResponse<T> = {
   data?: T;
   otp?: string;
   emailVerificationRequired?: boolean;
-  user?: unknown;
+  user?: any;
   errors?: {
     formErrors?: string[];
     fieldErrors?: Record<string, string[] | undefined>;
@@ -87,6 +87,8 @@ function isValidationErrorPayload(errors: unknown): errors is NonNullable<ApiRes
 
 async function request<T>(path: string, init?: RequestInit): Promise<ApiResponse<T>> {
   let response: Response;
+  const token = getStoredAccessToken();
+  const authHeader: Record<string, string> = token ? { authorization: `Bearer ${token}` } : {};
 
   try {
     response = await fetch(buildUrl(path), {
@@ -94,6 +96,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<ApiResponse
       credentials: "include",
       headers: {
         "content-type": "application/json",
+        ...authHeader,
         ...(init?.headers ?? {}),
       },
     });

@@ -123,7 +123,8 @@ function AdminChatPage() {
         search: searchQuery,
         limit: 50,
       });
-      setRooms(result.data.rooms);
+      const roomsData = (result as any)?.data?.rooms ?? (result as any)?.rooms ?? [];
+      setRooms(roomsData);
     } catch (err) {
       setError("Failed to load chat rooms");
       console.error(err);
@@ -135,7 +136,7 @@ function AdminChatPage() {
   async function loadChatDetails(roomId: string) {
     try {
       const result = await getAdminChatRoom(roomId);
-      setChatDetails(result.data);
+      setChatDetails((result as any)?.data ?? result);
     } catch (err) {
       setError("Failed to load chat details");
       console.error(err);

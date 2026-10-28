@@ -15,6 +15,15 @@ dist-ssr
 .tanstack/**
 .nitro
 *.local
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/dist/
+backend/uploads/*
+!backend/uploads/.gitkeep
 
 # Wrangler / Cloudflare
 .wrangler/
@@ -30,3 +39,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+calendar-clone

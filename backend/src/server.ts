@@ -173,7 +173,7 @@ async function bootstrap() {
           retriesLeft -= 1;
           currentPort += 1;
           console.log(`Attempting to listen on port ${currentPort} (retries left: ${retriesLeft})`);
-          setTimeout(() => server.listen(currentPort), 100);
+          setTimeout(() => server.listen(currentPort, "0.0.0.0"), 100);
         } else {
           console.error(`No available ports after ${MAX_PORT_RETRIES} attempts. Exiting.`);
           process.exit(1);
@@ -184,8 +184,8 @@ async function bootstrap() {
       }
     });
 
-    server.listen(currentPort, () => {
-      console.log(`SmartGov auth backend listening on port ${currentPort}`);
+    server.listen(currentPort, "0.0.0.0", () => {
+      console.log(`SmartGov auth backend listening on 0.0.0.0:${currentPort}`);
       // Run SLA checker once at startup
       void checkAndEscalateSLABreaches()
         .then((r) => {

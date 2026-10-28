@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { loginAdmin } from "@/lib/auth-api";
 
 export const Route = createFileRoute("/officer_/login")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { email?: string; returnTo?: string } => ({
     email: typeof search.email === "string" ? search.email : undefined,
+    returnTo: typeof search.returnTo === "string" ? search.returnTo : undefined,
   }),
   head: () => ({ meta: [{ title: "Officer sign in — Civic Bridge Flow" }] }),
   component: OfficerLoginPage,

@@ -558,7 +558,7 @@ export async function getAdminChatDetails(input: { roomId: string; adminId: stri
         reason: t.reason,
       })),
     },
-    participants: participants.map((p) => ({
+    participants: room.participants.map((p) => ({
       userId: p.userId,
       name: p.user?.fullName,
       role: p.role,

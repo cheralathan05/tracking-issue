@@ -91,5 +91,11 @@ export function useSocket(url = resolveSocketUrl(), enabled = true, authToken?: 
     socketRef.current?.emit(event, payload);
   }, []);
 
-  return { socketRef, on, off, emit } as const;
+  return {
+    socketRef,
+    socket: socketRef.current,
+    on,
+    off,
+    emit,
+  };
 }

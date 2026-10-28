@@ -29,7 +29,7 @@ export async function listAdminChatRooms(req: Request, res: Response, next: Next
  */
 export async function getAdminChatRoom(req: Request, res: Response, next: NextFunction) {
   try {
-    const { roomId } = req.params;
+    const roomId = req.params.roomId as string;
     const adminId = req.user!.id;
 
     const result = await chatService.getAdminChatDetails({
@@ -49,7 +49,7 @@ export async function getAdminChatRoom(req: Request, res: Response, next: NextFu
  */
 export async function sendAdminMessage(req: Request, res: Response, next: NextFunction) {
   try {
-    const { roomId } = req.params;
+    const roomId = req.params.roomId as string;
     const { message, attachment } = req.body;
     const adminId = req.user!.id;
 
@@ -96,7 +96,7 @@ export async function sendAdminMessage(req: Request, res: Response, next: NextFu
  */
 export async function reassignComplaintOfficer(req: Request, res: Response, next: NextFunction) {
   try {
-    const { complaintId } = req.params;
+    const complaintId = req.params.complaintId as string;
     const { newOfficerId, reason } = req.body;
     const adminId = req.user!.id;
 
@@ -135,7 +135,7 @@ export async function reassignComplaintOfficer(req: Request, res: Response, next
  */
 export async function escalateComplaintHandler(req: Request, res: Response, next: NextFunction) {
   try {
-    const { complaintId } = req.params;
+    const complaintId = req.params.complaintId as string;
     const { level, reason } = req.body;
     const adminId = req.user!.id;
 
@@ -182,7 +182,7 @@ export async function escalateComplaintHandler(req: Request, res: Response, next
  */
 export async function freezeChat(req: Request, res: Response, next: NextFunction) {
   try {
-    const { complaintId } = req.params;
+    const complaintId = req.params.complaintId as string;
     const { reason } = req.body;
     const adminId = req.user!.id;
 
@@ -220,7 +220,7 @@ export async function freezeChat(req: Request, res: Response, next: NextFunction
  */
 export async function unfreezeChat(req: Request, res: Response, next: NextFunction) {
   try {
-    const { complaintId } = req.params;
+    const complaintId = req.params.complaintId as string;
     const adminId = req.user!.id;
 
     await chatService.unfreezeComplaintChat({

@@ -65,13 +65,13 @@ export default function NeoChatHero({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative w-full min-h-screen bg-gradient-to-b from-[#0A0E27] via-[#0F1535] to-[#1A1F3A] flex items-center justify-center overflow-hidden"
+      className="relative w-full min-h-screen bg-gradient-to-b from-[#09090b] via-[#121215] to-[#18181b] flex items-center justify-center overflow-hidden"
     >
       {/* Ambient glow effects */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] -z-10" />
-        <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] -z-10" />
-        <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-purple-500/5 rounded-full blur-[120px] -z-10" />
+        <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-white/[0.03] rounded-full blur-[140px] -z-10" />
+        <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-zinc-400/[0.04] rounded-full blur-[140px] -z-10" />
+        <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-white/[0.02] rounded-full blur-[140px] -z-10" />
       </div>
 
       {/* Main content */}
@@ -86,7 +86,7 @@ export default function NeoChatHero({
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 leading-tight">
             {title}
           </h1>
-          <p className="text-slate-400 text-base">
+          <p className="text-zinc-400 text-base">
             Get instant support and track your complaints
           </p>
         </motion.div>
@@ -101,9 +101,9 @@ export default function NeoChatHero({
           <div
             className={`relative rounded-2xl transition-all duration-300 ${
               isFocused
-                ? 'border-blue-500/50 shadow-[0_0_30px_rgba(59,130,246,0.3)]'
-                : 'border-slate-700/50 shadow-[0_0_20px_rgba(0,0,0,0.3)]'
-            } border backdrop-blur-xl bg-slate-900/40`}
+                ? 'border-white/50 shadow-[0_0_30px_rgba(255,255,255,0.12)]'
+                : 'border-zinc-800/80 shadow-[0_0_20px_rgba(0,0,0,0.5)]'
+            } border backdrop-blur-xl bg-zinc-950/60`}
           >
             {/* Inner glow */}
             <div
@@ -112,7 +112,7 @@ export default function NeoChatHero({
               } pointer-events-none`}
               style={{
                 background:
-                  'radial-gradient(circle at top, rgba(59,130,246,0.1), transparent)',
+                  'radial-gradient(circle at top, rgba(255,255,255,0.06), transparent)',
               }}
             />
 
@@ -124,7 +124,7 @@ export default function NeoChatHero({
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               placeholder={placeholder}
-              className="relative w-full px-6 py-4 bg-transparent text-white placeholder-slate-500 focus:outline-none font-medium"
+              className="relative w-full px-6 py-4 bg-transparent text-white placeholder-zinc-500 focus:outline-none font-medium"
             />
 
             {/* Input border effect */}
@@ -135,7 +135,7 @@ export default function NeoChatHero({
               style={{
                 background: `linear-gradient(90deg, 
                   transparent,
-                  rgba(59,130,246,0.3) 50%,
+                  rgba(255,255,255,0.18) 50%,
                   transparent)`,
                 backgroundSize: '200% 100%',
                 animation: 'shimmer 2s infinite',
@@ -145,8 +145,8 @@ export default function NeoChatHero({
 
           {/* Model selector hint */}
           <div className="mt-4 flex items-center justify-between px-2">
-            <span className="text-sm text-slate-500">Chat Mode: Smart Assistant</span>
-            <button className="text-sm text-slate-400 hover:text-slate-300 transition-colors">
+            <span className="text-sm text-zinc-500">Chat Mode: Smart Assistant</span>
+            <button className="text-sm text-zinc-400 hover:text-white transition-colors">
               Choose mode ↓
             </button>
           </div>
@@ -170,12 +170,12 @@ export default function NeoChatHero({
                 flex items-center gap-2
                 px-4 py-2.5
                 rounded-xl
-                border border-slate-700/50
-                bg-slate-900/30 hover:bg-slate-800/50
-                text-slate-300 hover:text-white
+                border border-zinc-800/80
+                bg-zinc-900/50 hover:bg-zinc-800/80
+                text-zinc-300 hover:text-white
                 transition-all duration-200
                 text-sm font-medium
-                hover:border-slate-600
+                hover:border-zinc-700
                 group
               "
             >
