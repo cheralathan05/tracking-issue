@@ -112,7 +112,7 @@ export async function login(req: Request, res: Response) {
   res.status(200).json({
     success: true,
     message: result.message,
-    data: { user: (result as any).user },
+    data: { user: (result as any).user, accessToken: result.accessToken },
   });
 }
 
@@ -123,13 +123,13 @@ export async function adminLogin(req: Request, res: Response) {
   });
 
   // If a session was returned (verified admin), set auth cookies and return user
-    if ("accessToken" in result && result.accessToken && result.refreshToken) {
+  if ("accessToken" in result && result.accessToken && result.refreshToken) {
     setAuthCookies(res, result.accessToken, result.refreshToken);
 
     res.status(200).json({
       success: true,
       message: result.message,
-        data: { user: (result as any).user },
+      data: { user: (result as any).user, accessToken: result.accessToken },
     });
     return;
   }
@@ -159,7 +159,7 @@ export async function refreshToken(req: Request, res: Response) {
   res.status(200).json({
     success: true,
     message: result.message,
-    data: { user: (result as any).user },
+    data: { user: (result as any).user, accessToken: result.accessToken },
   });
 }
 
@@ -228,7 +228,7 @@ export async function verifyOtp(req: Request, res: Response) {
     res.status(200).json({
       success: true,
       message: result.message,
-      data: { user: (result as any).user },
+      data: { user: (result as any).user, accessToken: result.accessToken },
     });
     return;
   }

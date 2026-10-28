@@ -372,12 +372,25 @@ function AdminComplaintsList() {
                       {complaint.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">{complaint.assignedOfficerName ?? "Unassigned"}</td>
+                  <td className="px-4 py-3 text-xs">
+                    {complaint.assignedOfficerName ? (
+                      <span className="font-medium text-foreground">{complaint.assignedOfficerName}</span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 px-2 py-0.5 text-[11px] font-semibold animate-pulse">
+                        Pending Assignment
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-xs text-muted-foreground">{new Date(complaint.createdAt).toLocaleString()}</td>
                   <td className="px-4 py-3 text-right">
-                    <Button asChild size="sm" variant="outline">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant={!complaint.assignedOfficerName ? "default" : "outline"}
+                      className={!complaint.assignedOfficerName ? "bg-gradient-primary text-primary-foreground shadow-sm hover:opacity-95 text-xs font-semibold" : "text-xs"}
+                    >
                       <Link to="/admin/complaints/$id" params={{ id: complaint.grievanceId }}>
-                        Manage
+                        {!complaint.assignedOfficerName ? "Assign Officer" : "Manage"}
                       </Link>
                     </Button>
                   </td>

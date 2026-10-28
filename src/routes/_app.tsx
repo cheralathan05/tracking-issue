@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_app")({
 
     if (role && role !== "citizen") {
       throw redirect({
-        to: "/admin/dashboard",
+        to: role === "officer" ? "/officer/dashboard" : "/admin/dashboard",
         replace: true,
       });
     }

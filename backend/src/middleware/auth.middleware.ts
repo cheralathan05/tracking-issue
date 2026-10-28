@@ -82,11 +82,17 @@ export function requireRole(...allowedRoles: string[]): RequestHandler {
       return;
     }
 
-    if (!allowedRoles.includes(String(req.user.role))) {
-      next(new AppError("Forbidden", 403));
+    const userRole = String(req.user.role);
+    const isSuperAdmin = userRole === "super_admin";
+    const isAdminTarget = allowedRoles.some((r) =>
+      ["admin", "super_admin", "state_admin", "district_officer", "department_officer"].includes(r),
+    );
+
+    if (allowedRoles.includes(userRole) || (isSuperAdmin && isAdminTarget)) {
+      next();
       return;
     }
 
-    next();
+    next(new AppError(`Forbidden: Role '${userRole}' is not authorized for this resource`, 403));
   };
 }

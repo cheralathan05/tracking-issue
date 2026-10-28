@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { categories } from "@/lib/complaint-categories";
+import { getProfile } from "@/lib/auth-api";
 import {
   createComplaint,
   type ComplaintEvidence,
@@ -136,6 +137,24 @@ function NewComplaint() {
       return rest;
     });
   };
+
+  useEffect(() => {
+    getProfile()
+      .then((res) => {
+        if (res?.data?.user) {
+          const user = res.data.user;
+          setData((prev) => ({
+            ...prev,
+            reporterName: prev.reporterName || user.fullName || "",
+            reporterEmail: prev.reporterEmail || user.email || "",
+            contact: prev.contact || user.mobile || "",
+            state: prev.state || user.state || "Haryana",
+            district: prev.district || user.district || "Gurugram",
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   if (submittedComplaint) {
     return (

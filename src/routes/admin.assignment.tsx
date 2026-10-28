@@ -1,9 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Sparkles, MapPin, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { Sparkles, MapPin, ArrowRight, CheckCircle2, Loader2, UserCheck, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { assignComplaint, fetchComplaintSummary, listComplaints, type ComplaintRecord, type ComplaintSummary } from "@/lib/smartgov-api";
+import {
+  assignComplaint,
+  fetchComplaintSummary,
+  listComplaints,
+  listOfficers,
+  type ComplaintRecord,
+  type ComplaintSummary,
+  type OfficerSummary,
+} from "@/lib/smartgov-api";
 
 export const Route = createFileRoute("/admin/assignment")({
   head: () => ({ meta: [{ title: "Smart assignment — Admin" }] }),
@@ -13,16 +21,20 @@ export const Route = createFileRoute("/admin/assignment")({
 function SmartAssignment() {
   const [summary, setSummary] = useState<ComplaintSummary | null>(null);
   const [complaints, setComplaints] = useState<ComplaintRecord[]>([]);
+  const [officers, setOfficers] = useState<OfficerSummary[]>([]);
+  const [selectedOfficers, setSelectedOfficers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const refresh = async () => {
-    const [summaryResult, complaintsResult] = await Promise.all([
+    const [summaryResult, complaintsResult, officersResult] = await Promise.all([
       fetchComplaintSummary(),
       listComplaints({ view: "all" }),
+      listOfficers().catch(() => ({ officers: [] })),
     ]);
     setSummary(summaryResult);
     setComplaints(complaintsResult.complaints);
+    setOfficers(officersResult.officers);
   };
 
   useEffect(() => {
@@ -44,11 +56,21 @@ function SmartAssignment() {
     };
   }, []);
 
-  const handleAssign = async (complaint: ComplaintRecord) => {
+  const handleAssign = async (complaint: ComplaintRecord, officerIdOverride?: string) => {
+    const targetOfficerId = officerIdOverride || selectedOfficers[complaint.grievanceId] || complaint.suggestedOfficerId;
+    if (!targetOfficerId && !complaint.suggestedOfficerId) {
+      toast.error("Please select an officer to assign");
+      return;
+    }
+
     setActionLoadingId(complaint.grievanceId);
     try {
-      await assignComplaint(complaint.grievanceId, { useSuggestedOfficer: true });
-      toast.success(`Assigned ${complaint.grievanceId}`);
+      await assignComplaint(complaint.grievanceId, {
+        officerId: targetOfficerId ?? undefined,
+        useSuggestedOfficer: !targetOfficerId,
+      });
+      const assignedOfficer = officers.find((o) => o.id === targetOfficerId);
+      toast.success(`Assigned ${complaint.grievanceId} to ${assignedOfficer?.fullName || "officer"}`);
       await refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to assign complaint");
@@ -99,37 +121,81 @@ function SmartAssignment() {
           {loading ? (
             <li className="px-5 py-10 text-center text-sm text-muted-foreground">Loading suggestions...</li>
           ) : null}
-          {!loading && pending.slice(0, 8).map((complaint) => (
-            <li key={complaint.grievanceId} className="grid items-center gap-4 px-5 py-4 md:grid-cols-[1fr_auto_1fr_auto]">
-              <div>
-                <div className="font-mono text-[10px] text-muted-foreground">{complaint.grievanceId}</div>
-                <div className="font-medium">{complaint.title}</div>
-                <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <MapPin className="h-3 w-3" />
-                  {complaint.city} · {complaint.department}
-                </div>
-              </div>
-              <ArrowRight className="hidden h-4 w-4 text-muted-foreground md:block" />
-              <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">Suggested officer</div>
-                <div className="font-medium">{complaint.suggestedOfficerName ?? "No match yet"}</div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {complaint.assignedOfficerName ? `Assigned to ${complaint.assignedOfficerName}` : "Awaiting assignment"}
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button size="sm" variant="outline" onClick={() => toast("Suggestion dismissed")}>
-                  Skip
-                </Button>
-                <Button size="sm" onClick={() => handleAssign(complaint)} disabled={actionLoadingId === complaint.grievanceId}>
-                  {actionLoadingId === complaint.grievanceId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Assign
-                </Button>
-              </div>
-            </li>
-          ))}
+          {!loading &&
+            pending.slice(0, 15).map((complaint) => {
+              const currentChoice = selectedOfficers[complaint.grievanceId] || complaint.suggestedOfficerId || "";
+              return (
+                <li key={complaint.grievanceId} className="grid items-center gap-4 px-5 py-4 md:grid-cols-[1.2fr_auto_1.4fr_auto]">
+                  <div>
+                    <Link
+                      to="/admin/complaints/$id"
+                      params={{ id: complaint.grievanceId }}
+                      className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-primary hover:underline"
+                    >
+                      {complaint.grievanceId} <ExternalLink className="h-3 w-3" />
+                    </Link>
+                    <div className="font-medium text-foreground">{complaint.title}</div>
+                    <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <MapPin className="h-3 w-3" />
+                      {complaint.city} · <span className="font-medium text-foreground/80">{complaint.department}</span>
+                    </div>
+                  </div>
+
+                  <ArrowRight className="hidden h-4 w-4 text-muted-foreground md:block" />
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="uppercase tracking-wide text-muted-foreground">Officer</span>
+                      {complaint.suggestedOfficerName && (
+                        <span className="text-[11px] font-medium text-primary">✨ Match: {complaint.suggestedOfficerName}</span>
+                      )}
+                    </div>
+                    <select
+                      value={currentChoice}
+                      onChange={(e) =>
+                        setSelectedOfficers((prev) => ({
+                          ...prev,
+                          [complaint.grievanceId]: e.target.value,
+                        }))
+                      }
+                      className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {complaint.suggestedOfficerId && (
+                        <option value={complaint.suggestedOfficerId}>
+                          ⭐ Suggested: {complaint.suggestedOfficerName}
+                        </option>
+                      )}
+                      <option value="">-- Choose verified officer --</option>
+                      {officers.map((officer) => (
+                        <option key={officer.id} value={officer.id}>
+                          {officer.fullName} ({officer.department || "General"} · {officer.jurisdictionArea || "All areas"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleAssign(complaint, currentChoice)}
+                      disabled={actionLoadingId === complaint.grievanceId || (!currentChoice && !complaint.suggestedOfficerId)}
+                      className="bg-gradient-primary text-primary-foreground text-xs"
+                    >
+                      {actionLoadingId === complaint.grievanceId ? (
+                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <UserCheck className="mr-1.5 h-3.5 w-3.5" />
+                      )}
+                      Assign
+                    </Button>
+                  </div>
+                </li>
+              );
+            })}
           {!loading && pending.length === 0 && (
-            <li className="px-5 py-10 text-center text-sm text-muted-foreground">No pending complaints are waiting for assignment.</li>
+            <li className="px-5 py-10 text-center text-sm text-muted-foreground">
+              No pending complaints are waiting for assignment. All grievances are active.
+            </li>
           )}
         </ul>
       </div>
